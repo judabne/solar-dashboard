@@ -108,7 +108,10 @@ const bataliConnected = computed(() => Boolean(status.value?.batali.connected))
       class="mb-4 inline-flex items-center gap-1 text-sm font-medium text-primary"
       @click="goBack"
     >
-      <UIcon name="i-lucide-chevron-left" class="size-4" />
+      <UIcon
+        name="i-lucide-chevron-left"
+        class="size-4"
+      />
       Settings
     </button>
 
@@ -131,21 +134,35 @@ const bataliConnected = computed(() => Boolean(status.value?.batali.connected))
             <h2 class="font-medium">
               MUST / ShineMonitor
             </h2>
-            <UBadge v-if="shineConnected" color="success" variant="subtle">
+            <UBadge
+              v-if="shineConnected"
+              color="success"
+              variant="subtle"
+            >
               Connected
             </UBadge>
-            <UBadge v-else-if="status?.shinemonitor.needsReconnect" color="warning" variant="subtle">
+            <UBadge
+              v-else-if="status?.shinemonitor.needsReconnect"
+              color="warning"
+              variant="subtle"
+            >
               Reconnect required
             </UBadge>
           </div>
         </template>
 
-        <div v-if="loading" class="space-y-2">
+        <div
+          v-if="loading"
+          class="space-y-2"
+        >
           <USkeleton class="h-8 w-full" />
           <USkeleton class="h-8 w-full" />
         </div>
 
-        <div v-else-if="shineConnected" class="space-y-3">
+        <div
+          v-else-if="shineConnected"
+          class="space-y-3"
+        >
           <p class="text-sm">
             Authenticated as <span class="font-medium">{{ status?.shinemonitor.username }}</span>
           </p>
@@ -158,7 +175,11 @@ const bataliConnected = computed(() => Boolean(status.value?.batali.connected))
           />
         </div>
 
-        <form v-else class="space-y-3" @submit.prevent="signInShine">
+        <form
+          v-else
+          class="space-y-3"
+          @submit.prevent="signInShine"
+        >
           <UInput
             v-model="shineForm.username"
             class="w-full"
@@ -174,7 +195,12 @@ const bataliConnected = computed(() => Boolean(status.value?.batali.connected))
             autocomplete="current-password"
             required
           />
-          <UButton type="submit" label="Sign in" :loading="shineBusy" block />
+          <UButton
+            type="submit"
+            label="Sign in"
+            :loading="shineBusy"
+            block
+          />
         </form>
 
         <UAlert
@@ -192,13 +218,20 @@ const bataliConnected = computed(() => Boolean(status.value?.batali.connected))
             <h2 class="font-medium">
               Batali Battery
             </h2>
-            <UBadge v-if="bataliConnected" color="success" variant="subtle">
+            <UBadge
+              v-if="bataliConnected"
+              color="success"
+              variant="subtle"
+            >
               Connected
             </UBadge>
           </div>
         </template>
 
-        <div v-if="bataliConnected" class="space-y-3">
+        <div
+          v-if="bataliConnected"
+          class="space-y-3"
+        >
           <p class="text-sm">
             Authenticated as <span class="font-medium">{{ status?.batali.username }}</span>
           </p>
@@ -211,7 +244,11 @@ const bataliConnected = computed(() => Boolean(status.value?.batali.connected))
           />
         </div>
 
-        <form v-else class="space-y-3" @submit.prevent="signInBatali">
+        <form
+          v-else
+          class="space-y-3"
+          @submit.prevent="signInBatali"
+        >
           <UInput
             v-model="bataliForm.username"
             class="w-full"

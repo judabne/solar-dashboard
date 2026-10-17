@@ -24,7 +24,10 @@ function isActive(path: string) {
         class="flex flex-col items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
         :class="isActive(item.to) ? 'bg-primary/10 text-primary' : 'text-muted hover:bg-elevated'"
       >
-        <UIcon :name="item.icon" class="size-5" />
+        <UIcon
+          :name="item.icon"
+          class="size-5"
+        />
         {{ item.label }}
       </NuxtLink>
     </div>

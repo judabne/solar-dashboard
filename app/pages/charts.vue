@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { HistoryResponse } from '#shared/types/readings'
+import { METRIC_COLORS } from '~/utils/metricColors'
 
 definePageMeta({ layout: 'default', keepalive: true })
 
@@ -38,13 +39,16 @@ const loadSeries = computed(() => history.value?.series.find(s => s.metric === '
       <h1 class="text-xl font-semibold">
         Charts
       </h1>
-      <UButton
-        to="/settings"
-        icon="i-lucide-settings"
-        color="neutral"
-        variant="ghost"
-        aria-label="Settings"
-      />
+      <div class="flex shrink-0 items-center gap-0.5">
+        <ColorModeToggle />
+        <UButton
+          to="/settings"
+          icon="i-lucide-settings"
+          color="neutral"
+          variant="ghost"
+          aria-label="Settings"
+        />
+      </div>
     </header>
 
     <USelect
@@ -62,36 +66,47 @@ const loadSeries = computed(() => history.value?.series.find(s => s.metric === '
       :title="error"
     />
 
-    <div v-if="loading" class="space-y-4">
+    <div
+      v-if="loading || !history"
+      class="space-y-4"
+    >
+      <USkeleton class="h-64 w-full" />
+      <USkeleton class="h-64 w-full" />
       <USkeleton class="h-64 w-full" />
       <USkeleton class="h-64 w-full" />
     </div>
 
-    <template v-else>
+    <template v-else-if="history">
       <div class="grid gap-4 md:grid-cols-2 md:gap-5">
-      <TimeSeriesChart
-        title="Solar Generation"
-        unit="W"
-        :points="toChartPoints(solarSeries)"
-      />
-      <TimeSeriesChart
-        title="Grid Power"
-        unit="W"
-        :points="toChartPoints(gridSeries)"
-        :show-zero-baseline="true"
-      />
-      <TimeSeriesChart
-        title="Home Consumption"
-        unit="W"
-        :points="toChartPoints(loadSeries)"
-        :comparison-points="toChartPoints(solarSeries)"
-        compare-consumption
-      />
-      <TimeSeriesChart
-        title="Battery"
-        unit="%"
-        :points="[]"
-      />
+        <TimeSeriesChart
+          title="Solar Generation"
+          unit="W"
+          :points="toChartPoints(solarSeries)"
+          :line-color="METRIC_COLORS.solar.line"
+          :fill-color="METRIC_COLORS.solar.fill"
+        />
+        <TimeSeriesChart
+          title="Grid Power"
+          unit="W"
+          :points="toChartPoints(gridSeries)"
+          :show-zero-baseline="true"
+          :line-color="METRIC_COLORS.grid.line"
+          :fill-color="METRIC_COLORS.grid.fill"
+        />
+        <TimeSeriesChart
+          title="Home Consumption"
+          unit="W"
+          :points="toChartPoints(loadSeries)"
+          :comparison-points="toChartPoints(solarSeries)"
+          compare-consumption
+        />
+        <TimeSeriesChart
+          title="Battery"
+          unit="%"
+          :points="[]"
+          :line-color="METRIC_COLORS.battery.line"
+          :fill-color="METRIC_COLORS.battery.fill"
+        />
       </div>
     </template>
   </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { formatWatts, formatPercent, formatTimestamp } from '~/utils/format'
+import { formatWatts, formatPercent, formatReadingTimestamp } from '~/utils/format'
 
 definePageMeta({ layout: 'default', keepalive: true })
 
@@ -11,19 +11,22 @@ const statusTone = computed(() => {
   return 'default'
 })
 
-const gridPowerValueClass = computed(() => {
-  const grid = readings.value?.gridPowerW
-  const solar = readings.value?.solarGenerationW
-  if (grid === null || grid === undefined || solar === null || solar === undefined) {
+const homeConsumptionValueClass = computed(() => {
+  if (error.value) {
     return ''
   }
-  return grid > solar ? 'text-red-600' : 'text-green-600'
+  const home = readings.value?.homeConsumptionW
+  const solar = readings.value?.solarGenerationW
+  if (home === null || home === undefined || solar === null || solar === undefined) {
+    return ''
+  }
+  return home > solar ? 'text-[#dc2626]' : ''
 })
 
 const batteryValue = computed(() => {
   const pct = readings.value?.batteryPercent
   if (pct === null || pct === undefined) {
-    return '—'
+    return 'Soon'
   }
   return formatPercent(pct)
 })
@@ -46,21 +49,27 @@ const batteryValue = computed(() => {
         class="inline-block transition-transform"
         :style="{ transform: `rotate(${Math.min(pullDistance / threshold, 1) * 180}deg)` }"
       >
-        <UIcon name="i-lucide-arrow-down" class="size-4" />
+        <UIcon
+          name="i-lucide-arrow-down"
+          class="size-4"
+        />
       </span>
     </div>
 
-    <header class="mb-4 flex items-center justify-between gap-3">
-      <h1 class="text-xl font-semibold tracking-tight">
+    <header class="mb-5 flex items-center justify-between gap-3">
+      <h1 class="text-2xl font-bold tracking-tight">
         Solar Dashboard
       </h1>
-      <UButton
-        to="/settings"
-        icon="i-lucide-settings"
-        color="neutral"
-        variant="ghost"
-        aria-label="Settings"
-      />
+      <div class="flex shrink-0 items-center gap-0.5">
+        <ColorModeToggle />
+        <UButton
+          to="/settings"
+          icon="i-lucide-settings"
+          color="neutral"
+          variant="ghost"
+          aria-label="Settings"
+        />
+      </div>
     </header>
 
     <UAlert
@@ -74,30 +83,41 @@ const batteryValue = computed(() => {
     <div class="grid auto-rows-fr grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
       <MetricCard
         title="Solar Generation"
+        icon="i-lucide-sun"
+        icon-class="text-orange-500"
         :value="formatWatts(readings?.solarGenerationW)"
         :loading="loading"
         :tone="statusTone"
       />
       <MetricCard
         title="Grid Power"
+        icon="i-lucide-zap"
+        icon-class="text-blue-500"
         :value="formatWatts(readings?.gridPowerW)"
         :loading="loading"
         :tone="statusTone"
-        :value-class="gridPowerValueClass"
       />
       <MetricCard
         title="Home Consumption"
+        icon="i-lucide-house"
+        icon-class="text-green-600"
         :value="formatWatts(readings?.homeConsumptionW)"
         :loading="loading"
         :tone="statusTone"
+        :value-class="homeConsumptionValueClass"
       />
       <MetricCard
         title="Battery"
+        icon="i-lucide-battery-charging"
+        icon-class="text-rose-500"
         :value="batteryValue"
         :loading="loading"
       >
         <template #subtitle>
-          <div v-if="!loading" class="mt-2">
+          <div
+            v-if="!loading"
+            class="mt-2"
+          >
             <BatteryStatusIndicator :status="readings?.batteryStatus ?? 'unknown'" />
           </div>
         </template>
@@ -113,16 +133,19 @@ const batteryValue = computed(() => {
         <time
           v-if="readings?.inverterUpdatedAt"
           :datetime="readings.inverterUpdatedAt"
-        >{{ formatTimestamp(readings.inverterUpdatedAt) }}</time>
+        >{{ formatReadingTimestamp(readings.inverterUpdatedAt) }}</time>
         <span v-else>—</span>
-        <span v-if="readings?.stale" class="text-warning"> · may be stale</span>
+        <span
+          v-if="readings?.stale"
+          class="text-warning"
+        > · may be stale</span>
       </p>
       <p>
         Battery:
         <time
           v-if="readings?.batteryUpdatedAt"
           :datetime="readings.batteryUpdatedAt"
-        >{{ formatTimestamp(readings.batteryUpdatedAt) }}</time>
+        >{{ formatReadingTimestamp(readings.batteryUpdatedAt) }}</time>
         <span v-else>—</span>
       </p>
     </div>
