@@ -1,12 +1,19 @@
 <script setup lang="ts">
 import type { ProvidersStatusResponse } from '#shared/types/api'
 
+import { isClient } from '~/utils/clientOnly'
 import { toDisplayMessage } from '~/utils/errors'
 
 definePageMeta({ layout: 'default' })
 
 const router = useRouter()
 const api = useDashboardApi()
+const { deviceId, ensurePaired } = useDeviceAuth()
+
+const deviceIdSuffix = computed(() => {
+  const id = deviceId.value
+  return id ? id.slice(-8) : null
+})
 
 const status = ref<ProvidersStatusResponse | null>(null)
 const loading = ref(true)
@@ -28,6 +35,9 @@ function goBack() {
 }
 
 async function loadStatus() {
+  if (!isClient()) {
+    return
+  }
   loading.value = true
   error.value = null
   try {
@@ -93,7 +103,10 @@ async function logoutBatali() {
   }
 }
 
-onMounted(loadStatus)
+onMounted(async () => {
+  await ensurePaired()
+  await loadStatus()
+})
 
 const shineConnected = computed(() =>
   Boolean(status.value?.shinemonitor.connected && !status.value?.shinemonitor.needsReconnect)
@@ -118,9 +131,13 @@ const bataliConnected = computed(() => Boolean(status.value?.batali.connected))
       Settings
     </button>
 
-    <h1 class="text-xl font-semibold mb-4">
+    <h1 class="text-xl font-semibold">
       Connections
     </h1>
+    <p class="mb-4 text-sm text-muted">
+      Sign-in is saved per browser and URL (local dev, Vercel, and installed app are separate).
+      <span v-if="deviceIdSuffix"> Device …{{ deviceIdSuffix }}.</span>
+    </p>
 
     <UAlert
       v-if="error"

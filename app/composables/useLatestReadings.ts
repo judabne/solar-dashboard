@@ -1,4 +1,5 @@
 import type { NormalizedReadings } from '#shared/types/readings'
+import { isClient } from '~/utils/clientOnly'
 import { toDisplayMessage } from '~/utils/errors'
 
 const REFRESH_MS = 2 * 60_000
@@ -10,6 +11,19 @@ const error = ref<string | null>(null)
 let fetchInFlight = false
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 let pollingHooked = false
+let timerTick: (() => void) | null = null
+
+/** Re-bind the polling interval (e.g. after switching to fake timers in tests). */
+export function restartLatestReadingsPolling() {
+  if (!isClient() || !timerTick) {
+    return
+  }
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+  refreshTimer = setInterval(timerTick, REFRESH_MS)
+}
 
 function readingsLookEmpty(value: NormalizedReadings | null) {
   if (!value) {
@@ -27,7 +41,7 @@ export function useLatestReadings() {
   const api = useDashboardApi()
 
   async function refresh() {
-    if (fetchInFlight) {
+    if (!isClient() || fetchInFlight) {
       return
     }
     fetchInFlight = true
@@ -53,6 +67,7 @@ export function useLatestReadings() {
     }
     refresh()
   }
+  timerTick = tick
 
   function startTimer() {
     stopTimer()
@@ -66,7 +81,7 @@ export function useLatestReadings() {
     }
   }
 
-  if (import.meta.client && !pollingHooked) {
+  if (isClient() && !pollingHooked) {
     pollingHooked = true
 
     onMounted(() => {

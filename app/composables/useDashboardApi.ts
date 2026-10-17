@@ -5,12 +5,16 @@ import type {
   ProvidersStatusResponse
 } from '#shared/types/api'
 import { isApiFailure, parseApiResult, providerAuthMessage } from '~/utils/apiClient'
+import { isClient } from '~/utils/clientOnly'
 import { toDisplayMessage } from '~/utils/errors'
 
 export function useDashboardApi() {
   const { getAuthHeaders, ensurePaired, pairingReady } = useDeviceAuth()
 
   async function apiFetch<T>(path: string, options: Parameters<typeof $fetch>[1] = {}) {
+    if (!isClient()) {
+      throw new Error('Dashboard API is client-only')
+    }
     if (!pairingReady.value) {
       await ensurePaired()
     }

@@ -113,6 +113,11 @@ export function usePullToRefresh(
       }
     }
     pullDistance.value = 0
+
+    const el = scrollRoot?.value
+    if (el && el.scrollHeight <= el.clientHeight + 1) {
+      el.scrollTop = 0
+    }
   }
 
   function bind(el: HTMLElement) {

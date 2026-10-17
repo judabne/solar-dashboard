@@ -1,4 +1,5 @@
 import type { HistoryResponse } from '#shared/types/readings'
+import { isClient } from '~/utils/clientOnly'
 import { toDisplayMessage } from '~/utils/errors'
 
 export type ChartHistoryRangeHours = 24 | 72
@@ -14,7 +15,7 @@ export function useChartsHistory() {
   const api = useDashboardApi()
 
   async function loadHistory(rangeHours: ChartHistoryRangeHours): Promise<void> {
-    if (fetchInFlight) {
+    if (!isClient() || fetchInFlight) {
       return
     }
     fetchInFlight = true
