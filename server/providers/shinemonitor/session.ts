@@ -5,7 +5,6 @@ import {
   shineQueryDeviceDataDayFull
 } from './client'
 import {
-  formatPlantDateYmd,
   getPlantTodayRange,
   historyWindowStart,
   plantDaysForHistoryRange,
@@ -16,7 +15,8 @@ import { deviceDataReachable } from './deviceData'
 import {
   extractHistoryPoints,
   extractLatestFromHistoryFallback,
-  extractLatestRealtimeRow
+  extractLatestRealtimeRow,
+  type LatestRealtimeRow
 } from './normalize'
 import type { HistoryPoint } from '#shared/types/readings'
 import type { ShineMonitorStoredSession } from './types'
@@ -231,6 +231,41 @@ export async function getShineMonitorStatus(deviceId: string) {
   }
 }
 
+function latestRowHasValues(row: LatestRealtimeRow) {
+  return (
+    row.inverterUpdatedAt !== null
+    || row.solarGenerationW !== null
+    || row.gridPowerW !== null
+    || row.homeConsumptionW !== null
+  )
+}
+
+function parseLatestFromDay(
+  dat: Parameters<typeof extractLatestRealtimeRow>[0],
+  plantDateYmd: string
+): LatestRealtimeRow | null {
+  const parsed
+    = extractLatestRealtimeRow(dat, plantDateYmd)
+      ?? extractLatestFromHistoryFallback(dat, plantDateYmd)
+  if (!parsed || !latestRowHasValues(parsed)) {
+    return null
+  }
+  return parsed
+}
+
+function isNewerLatestRow(candidate: LatestRealtimeRow, current: LatestRealtimeRow | null) {
+  if (!current) {
+    return true
+  }
+  const candidateMs = candidate.inverterUpdatedAt
+    ? new Date(candidate.inverterUpdatedAt).getTime()
+    : Number.NEGATIVE_INFINITY
+  const currentMs = current.inverterUpdatedAt
+    ? new Date(current.inverterUpdatedAt).getTime()
+    : Number.NEGATIVE_INFINITY
+  return candidateMs > currentMs
+}
+
 export async function fetchShineMonitorLatest(deviceId: string) {
   const session = await loadSession(deviceId)
   if (!session) {
@@ -243,51 +278,52 @@ export async function fetchShineMonitorLatest(deviceId: string) {
 
   try {
     let fresh = await ensureFreshSession(deviceId, session)
-    const today = formatPlantDateYmd(new Date())
-    const deviceArgs = {
+    let deviceRefreshed = false
+    let best: LatestRealtimeRow | null = null
+    let lastError: string | null = null
+
+    const deviceBase = () => ({
       pn: fresh.device.pn,
       sn: fresh.device.sn,
       devcode: String(fresh.device.devcode),
-      devaddr: String(fresh.device.devaddr),
-      date: today
-    }
+      devaddr: String(fresh.device.devaddr)
+    })
 
-    let response = await shineQueryDeviceDataDayFull(fresh.token, fresh.secret, deviceArgs)
-
-    if (!deviceDataReachable(response)) {
-      fresh = await refreshStoredDevice(deviceId, fresh, fresh.token, fresh.secret)
-      response = await shineQueryDeviceDataDayFull(fresh.token, fresh.secret, {
-        ...deviceArgs,
-        pn: fresh.device.pn,
-        sn: fresh.device.sn,
-        devcode: String(fresh.device.devcode),
-        devaddr: String(fresh.device.devaddr)
+    for (const date of plantDaysForHistoryRange(24)) {
+      let response = await shineQueryDeviceDataDayFull(fresh.token, fresh.secret, {
+        ...deviceBase(),
+        date
       })
-    }
 
-    if (!deviceDataReachable(response)) {
-      return {
-        available: true,
-        error: response.desc || 'ShineMonitor returned an error',
-        readings: null
+      if (!deviceDataReachable(response) && !deviceRefreshed) {
+        fresh = await refreshStoredDevice(deviceId, fresh, fresh.token, fresh.secret)
+        deviceRefreshed = true
+        response = await shineQueryDeviceDataDayFull(fresh.token, fresh.secret, {
+          ...deviceBase(),
+          date
+        })
+      }
+
+      if (!deviceDataReachable(response)) {
+        lastError = response.desc || 'ShineMonitor returned an error'
+        continue
+      }
+
+      if (response.err !== 0) {
+        lastError = response.desc || `ShineMonitor error (${response.err})`
+        continue
+      }
+
+      const parsed = parseLatestFromDay(response.dat, date)
+      if (parsed && isNewerLatestRow(parsed, best)) {
+        best = parsed
       }
     }
 
-    if (response.err !== 0) {
+    if (!best) {
       return {
         available: true,
-        error: response.desc || `ShineMonitor error (${response.err})`,
-        readings: null
-      }
-    }
-
-    const parsed
-      = extractLatestRealtimeRow(response.dat, today)
-        ?? extractLatestFromHistoryFallback(response.dat, today)
-    if (!parsed) {
-      return {
-        available: true,
-        error: 'No realtime readings from ShineMonitor',
+        error: lastError ?? 'No realtime readings from ShineMonitor',
         readings: null
       }
     }
@@ -296,11 +332,11 @@ export async function fetchShineMonitorLatest(deviceId: string) {
       available: true,
       error: null,
       readings: {
-        inverterUpdatedAt: parsed.inverterUpdatedAt,
-        solarGenerationW: parsed.solarGenerationW,
-        gridPowerW: parsed.gridPowerW,
-        homeConsumptionW: parsed.homeConsumptionW,
-        workState: parsed.workState
+        inverterUpdatedAt: best.inverterUpdatedAt,
+        solarGenerationW: best.solarGenerationW,
+        gridPowerW: best.gridPowerW,
+        homeConsumptionW: best.homeConsumptionW,
+        workState: best.workState
       }
     }
   } catch (error) {
