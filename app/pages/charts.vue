@@ -58,6 +58,10 @@ const loadSeries = computed(() => history.value?.series.find(s => s.metric === '
       value-key="value"
       label-key="label"
       class="w-full"
+      :ui="{
+        base: 'dashboard-border !ring-0 w-full',
+        content: 'dashboard-border !ring-0 bg-default shadow-lg overflow-hidden'
+      }"
     />
 
     <UAlert

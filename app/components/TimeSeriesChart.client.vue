@@ -158,7 +158,7 @@ function resetZoom() {
 <template>
   <UCard
     :ui="{
-      root: 'h-full',
+      root: 'dashboard-card h-full !ring-0',
       body: 'flex h-full flex-col'
     }"
   >

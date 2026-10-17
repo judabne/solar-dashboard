@@ -5,7 +5,8 @@ useHead({
     { name: 'theme-color', content: '#0f172a' }
   ],
   link: [
-    { rel: 'icon', href: '/favicon.ico' }
+    { rel: 'icon', type: 'image/png', sizes: '192x192', href: '/pwa-192x192.png' },
+    { rel: 'apple-touch-icon', href: '/pwa-192x192.png' }
   ],
   htmlAttrs: { lang: 'en' }
 })

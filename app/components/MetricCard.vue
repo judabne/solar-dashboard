@@ -14,7 +14,7 @@ defineProps<{
 <template>
   <UCard
     :ui="{
-      root: 'h-full ring-1 ring-default',
+      root: 'dashboard-card h-full !ring-0',
       body: 'flex h-full flex-col p-4 sm:p-5'
     }"
   >

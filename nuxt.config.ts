@@ -53,25 +53,42 @@ export default defineNuxtConfig({
 
   pwa: {
     registerType: 'autoUpdate',
+    injectRegister: 'auto',
+    includeAssets: ['app-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
     manifest: {
+      id: '/',
       name: 'Solar Dashboard',
       short_name: 'Solar',
       description: 'Home solar monitoring dashboard',
       theme_color: '#0f172a',
       background_color: '#0f172a',
       display: 'standalone',
+      scope: '/',
       start_url: '/',
       icons: [
         {
-          src: '/favicon.ico',
-          sizes: '48x48',
-          type: 'image/x-icon',
+          src: '/pwa-192x192.png',
+          sizes: '192x192',
+          type: 'image/png',
           purpose: 'any'
+        },
+        {
+          src: '/pwa-512x512.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'any'
+        },
+        {
+          src: '/pwa-512x512.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'maskable'
         }
       ]
     },
     workbox: {
       navigateFallback: '/',
+      navigateFallbackDenylist: [/^\/api\//],
       globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
       runtimeCaching: []
     },
