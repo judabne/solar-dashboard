@@ -31,17 +31,19 @@ function toChartPoints(series?: HistoryResponse['series'][number]) {
   }))
 }
 
-watch(rangeHours, (hours) => {
-  if (activeTab.value === 'charts') {
-    loadHistory(hours)
-  }
-})
+if (import.meta.client) {
+  watch(rangeHours, (hours) => {
+    if (activeTab.value === 'charts') {
+      loadHistory(hours)
+    }
+  })
 
-watch(activeTab, (tab) => {
-  if (tab === 'charts') {
-    ensureHistory(rangeHours.value)
-  }
-})
+  watch(activeTab, (tab) => {
+    if (tab === 'charts') {
+      ensureHistory(rangeHours.value)
+    }
+  })
+}
 
 const solarSeries = computed(() => history.value?.series.find(s => s.metric === 'solarGenerationW'))
 const gridSeries = computed(() => history.value?.series.find(s => s.metric === 'gridPowerW'))

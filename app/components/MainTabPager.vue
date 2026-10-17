@@ -11,6 +11,9 @@ provide(chartsScrollPaneKey, chartsScroll)
 
 const { activeIndex } = useMainTab()
 
+const overviewScrollable = useScrollPaneOverflow(overviewScroll, { clampTouchWhenShort: true })
+useScrollPaneOverflow(chartsScroll)
+
 const {
   trackStyle,
   onTouchStart,
@@ -45,14 +48,17 @@ onMounted(() => {
     @touchcancel="onTouchCancel"
   >
     <div
-      class="flex h-full w-[200%] will-change-transform"
+      class="flex h-full min-h-0 w-[200%] will-change-transform"
       :style="trackStyle"
     >
       <div
         ref="overviewScroll"
         data-testid="overview-scroll-pane"
-        class="h-full w-1/2 shrink-0 touch-pan-y overflow-y-auto overscroll-y-contain"
-        :class="activeIndex !== 0 && 'pointer-events-none'"
+        class="h-full min-h-0 w-1/2 shrink-0 touch-pan-y overscroll-y-none"
+        :class="[
+          overviewScrollable ? 'overflow-y-auto' : 'overflow-y-hidden',
+          activeIndex !== 0 && 'pointer-events-none'
+        ]"
         :inert="activeIndex !== 0"
       >
         <KeepAlive>
@@ -62,7 +68,7 @@ onMounted(() => {
       <div
         ref="chartsScroll"
         data-testid="charts-scroll-pane"
-        class="h-full w-1/2 shrink-0 touch-pan-y overflow-y-auto overscroll-y-contain"
+        class="h-full min-h-0 w-1/2 shrink-0 touch-pan-y overflow-y-auto overscroll-y-none"
         :class="activeIndex !== 1 && 'pointer-events-none'"
         :inert="activeIndex !== 1"
       >

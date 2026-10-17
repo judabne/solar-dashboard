@@ -20,6 +20,11 @@ export async function getLatestReadings(deviceId: string): Promise<NormalizedRea
   const bataliProviderError = batali.error
     ?? (!bataliStatus.available ? bataliStatus.message : null)
 
+  const shineConnected = shineStatus.connected && !shineStatus.needsReconnect
+  const shineProviderError = shine.error
+    ?? (shineStatus.needsReconnect ? 'ShineMonitor session expired — sign in again under Settings.' : null)
+    ?? (!shineConnected ? 'ShineMonitor is not connected for this browser. Sign in under Settings.' : null)
+
   return {
     inverterUpdatedAt,
     batteryUpdatedAt,
@@ -31,9 +36,9 @@ export async function getLatestReadings(deviceId: string): Promise<NormalizedRea
     workState: shine.readings?.workState ?? null,
     providers: {
       shinemonitor: {
-        connected: shineStatus.connected && !shineStatus.needsReconnect,
+        connected: shineConnected,
         available: shineStatus.connected,
-        error: shine.error
+        error: shineProviderError
       },
       batali: {
         connected: bataliStatus.connected && !bataliStatus.needsReconnect,
