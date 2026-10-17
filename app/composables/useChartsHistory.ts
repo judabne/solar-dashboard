@@ -1,17 +1,19 @@
 import type { HistoryResponse } from '#shared/types/readings'
 import { toDisplayMessage } from '~/utils/errors'
 
+export type ChartHistoryRangeHours = 24 | 72
+
 const history = ref<HistoryResponse | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
-const loadedRangeHours = ref<number | null>(null)
+const loadedRangeHours = ref<ChartHistoryRangeHours | null>(null)
 
 let fetchInFlight = false
 
 export function useChartsHistory() {
   const api = useDashboardApi()
 
-  async function loadHistory(rangeHours: number) {
+  async function loadHistory(rangeHours: ChartHistoryRangeHours) {
     if (fetchInFlight) {
       return
     }
@@ -22,11 +24,8 @@ export function useChartsHistory() {
     }
     error.value = null
 
-    const end = new Date()
-    const start = new Date(end.getTime() - rangeHours * 60 * 60 * 1000)
-
     try {
-      history.value = await api.getHistory(start.toISOString(), end.toISOString())
+      history.value = await api.getHistory(rangeHours)
       loadedRangeHours.value = rangeHours
     } catch (e) {
       error.value = toDisplayMessage(e)
@@ -36,7 +35,7 @@ export function useChartsHistory() {
     }
   }
 
-  function ensureHistory(rangeHours: number) {
+  function ensureHistory(rangeHours: ChartHistoryRangeHours) {
     if (history.value !== null && loadedRangeHours.value === rangeHours) {
       return
     }

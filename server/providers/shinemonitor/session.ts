@@ -5,13 +5,81 @@ import {
   shineQueryDeviceDataDayFull,
   shineQueryDeviceDataOneDay
 } from './client'
-import { eachLocalDayInRange } from './dates'
+import {
+  formatPlantDateYmd,
+  getPlantTodayRange,
+  historyWindowStart,
+  plantDaysForHistoryRange,
+  type ShineHistoryRangeHours
+} from './dates'
 import { shineResolveValidatedDevice } from './discover'
 import { deviceDataReachable } from './deviceData'
 import { extractHistoryPoints, extractLatestRealtimeRow } from './normalize'
+import type { HistoryPoint } from '#shared/types/readings'
 import type { ShineMonitorStoredSession } from './types'
 
 const PROVIDER = 'shinemonitor'
+
+type ShineHistoryMetric = 'solarGenerationW' | 'gridPowerW' | 'homeConsumptionW'
+
+const SHINE_HISTORY_METRICS: ShineHistoryMetric[] = [
+  'solarGenerationW',
+  'gridPowerW',
+  'homeConsumptionW'
+]
+
+function dedupeSortHistoryPoints(points: HistoryPoint[]): HistoryPoint[] {
+  const byTimestamp = new Map<string, HistoryPoint>()
+  for (const point of points) {
+    byTimestamp.set(point.timestamp, point)
+  }
+
+  return [...byTimestamp.values()].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  )
+}
+
+function applyHistoryWindow(
+  buckets: Record<ShineHistoryMetric, HistoryPoint[]>,
+  rangeHours: ShineHistoryRangeHours,
+  emptyWhenNoData: Date
+): {
+  points: Record<ShineHistoryMetric, HistoryPoint[]>
+  rangeStart: Date
+  rangeEnd: Date
+} {
+  const empty = (): Record<ShineHistoryMetric, HistoryPoint[]> => ({
+    solarGenerationW: [],
+    gridPowerW: [],
+    homeConsumptionW: []
+  })
+
+  const all = SHINE_HISTORY_METRICS.flatMap(metric => buckets[metric])
+  if (!all.length) {
+    return { points: empty(), rangeStart: emptyWhenNoData, rangeEnd: emptyWhenNoData }
+  }
+
+  let rangeEndMs = Number.NEGATIVE_INFINITY
+  for (const point of all) {
+    rangeEndMs = Math.max(rangeEndMs, new Date(point.timestamp).getTime())
+  }
+  const rangeEnd = new Date(rangeEndMs)
+  const rangeStart = historyWindowStart(rangeHours, rangeEndMs, emptyWhenNoData)
+  const windowStartMs = rangeStart.getTime()
+
+  const points = empty()
+  for (const metric of SHINE_HISTORY_METRICS) {
+    points[metric] = dedupeSortHistoryPoints(
+      buckets[metric].filter(p => new Date(p.timestamp).getTime() >= windowStartMs)
+    )
+  }
+
+  return {
+    points,
+    rangeStart,
+    rangeEnd
+  }
+}
 
 async function refreshStoredDevice(
   deviceId: string,
@@ -172,7 +240,7 @@ export async function fetchShineMonitorLatest(deviceId: string) {
 
   try {
     let fresh = await ensureFreshSession(deviceId, session)
-    const today = new Date().toISOString().slice(0, 10)
+    const today = formatPlantDateYmd(new Date())
     let response = await shineQueryDeviceDataOneDay(fresh.token, fresh.secret, {
       ...fresh.device,
       devcode: String(fresh.device.devcode),
@@ -212,7 +280,7 @@ export async function fetchShineMonitorLatest(deviceId: string) {
       }
     }
 
-    const parsed = extractLatestRealtimeRow(response.dat)
+    const parsed = extractLatestRealtimeRow(response.dat, today)
     if (!parsed) {
       return {
         available: true,
@@ -242,38 +310,59 @@ export async function fetchShineMonitorLatest(deviceId: string) {
   }
 }
 
+/** `queryDeviceDataOneDay` per plant calendar day; window ends at latest sample, not server clock. */
 export async function fetchShineMonitorHistory(
   deviceId: string,
-  rangeStart: Date,
-  rangeEnd: Date,
-  metric: 'solarGenerationW' | 'gridPowerW' | 'homeConsumptionW'
+  rangeHours: ShineHistoryRangeHours = 24
 ) {
+  const empty = (): Record<ShineHistoryMetric, HistoryPoint[]> => ({
+    solarGenerationW: [],
+    gridPowerW: [],
+    homeConsumptionW: []
+  })
+
+  const { start: dayStart } = getPlantTodayRange()
+
   const session = await loadSession(deviceId)
   if (!session) {
-    return { available: false, points: [] as ReturnType<typeof extractHistoryPoints>, message: 'Not connected' }
+    return {
+      available: false,
+      points: empty(),
+      rangeStart: dayStart,
+      rangeEnd: dayStart,
+      message: 'Not connected'
+    }
+  }
+  const fresh = await ensureFreshSession(deviceId, session)
+  const buckets = empty()
+
+  const deviceBase = {
+    pn: fresh.device.pn,
+    sn: fresh.device.sn,
+    devcode: String(fresh.device.devcode),
+    devaddr: String(fresh.device.devaddr)
   }
 
-  const fresh = await ensureFreshSession(deviceId, session)
-  const points = []
-  const days = eachLocalDayInRange(rangeStart, rangeEnd)
-
-  for (const date of days) {
+  for (const date of plantDaysForHistoryRange(rangeHours)) {
     const response = await shineQueryDeviceDataDayFull(fresh.token, fresh.secret, {
-      pn: fresh.device.pn,
-      sn: fresh.device.sn,
-      devcode: String(fresh.device.devcode),
-      devaddr: String(fresh.device.devaddr),
+      ...deviceBase,
       date
     })
-    if (response.err === 0 && response.dat) {
-      points.push(...extractHistoryPoints(response.dat, metric))
+    if (response.err !== 0 || !response.dat) {
+      continue
+    }
+    for (const metric of SHINE_HISTORY_METRICS) {
+      buckets[metric].push(...extractHistoryPoints(response.dat, metric, date))
     }
   }
 
-  const filtered = points.filter((p) => {
-    const t = new Date(p.timestamp).getTime()
-    return t >= rangeStart.getTime() && t <= rangeEnd.getTime()
-  })
+  const { points, rangeStart, rangeEnd } = applyHistoryWindow(buckets, rangeHours, dayStart)
 
-  return { available: true, points: filtered, message: null }
+  return {
+    available: true,
+    points,
+    rangeStart,
+    rangeEnd,
+    message: null
+  }
 }

@@ -24,7 +24,11 @@ export default defineNuxtConfig({
     shinemonitorAppClient: process.env.SHINEMONITOR_APP_CLIENT || 'web',
     shinemonitorI18n: process.env.SHINEMONITOR_I18N || 'en_US',
     shinemonitorLang: process.env.SHINEMONITOR_LANG || '',
-    shinemonitorBusinessUseAppParams: process.env.SHINEMONITOR_BUSINESS_USE_APP_PARAMS || ''
+    shinemonitorBusinessUseAppParams: process.env.SHINEMONITOR_BUSINESS_USE_APP_PARAMS || '',
+    shinemonitorTimezone: process.env.SHINEMONITOR_TIMEZONE || 'Asia/Beirut',
+    shinemonitorTimestampsUtc:
+      process.env.SHINEMONITOR_TIMESTAMPS_UTC === 'true'
+      || process.env.SHINEMONITOR_TIMESTAMPS_UTC === '1'
   },
 
   compatibilityDate: '2026-06-30',

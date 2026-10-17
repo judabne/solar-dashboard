@@ -41,8 +41,8 @@ export function useDashboardApi() {
 
   return {
     getLatest: () => apiFetch<LatestReadingsResponse>('/api/readings/latest'),
-    getHistory: (start: string, end: string) =>
-      apiFetch<HistoryReadingsResponse>('/api/readings/history', { query: { start, end } }),
+    getHistory: (hours: 24 | 72) =>
+      apiFetch<HistoryReadingsResponse>('/api/readings/history', { query: { hours } }),
     getProviderStatus: () => apiFetch<ProvidersStatusResponse>('/api/providers/status'),
     connectShineMonitor: (username: string, password: string) =>
       apiFetch<{ connected: boolean }>('/api/providers/shinemonitor/connect', {

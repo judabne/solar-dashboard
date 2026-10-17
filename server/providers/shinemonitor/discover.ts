@@ -6,6 +6,7 @@ import {
   shineQueryPlants
 } from './client'
 import { deviceDataReachable } from './deviceData'
+import { formatPlantDateYmd } from './dates'
 import { shineMonitorBusinessVariants } from './variants'
 import type { ShineMonitorBusinessRequestOptions, ShineMonitorDevice } from './types'
 
@@ -129,7 +130,7 @@ export async function shineResolveValidatedDevice(
     return null
   }
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = formatPlantDateYmd(new Date())
   for (const device of candidates) {
     const probe = await shineQueryDeviceDataOneDay(token, secret, {
       pn: device.pn,
