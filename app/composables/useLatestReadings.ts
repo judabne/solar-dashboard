@@ -9,6 +9,19 @@ const error = ref<string | null>(null)
 
 let fetchInFlight = false
 let refreshTimer: ReturnType<typeof setInterval> | null = null
+let pollingHooked = false
+
+function readingsLookEmpty(value: NormalizedReadings | null) {
+  if (!value) {
+    return true
+  }
+  return (
+    value.inverterUpdatedAt === null
+    && value.solarGenerationW === null
+    && value.gridPowerW === null
+    && value.homeConsumptionW === null
+  )
+}
 
 export function useLatestReadings() {
   const api = useDashboardApi()
@@ -53,24 +66,31 @@ export function useLatestReadings() {
     }
   }
 
-  onMounted(() => {
-    if (readings.value === null) {
-      refresh()
-    }
-    startTimer()
-  })
+  if (import.meta.client && !pollingHooked) {
+    pollingHooked = true
 
-  onActivated(() => {
-    startTimer()
-  })
+    onMounted(() => {
+      if (readingsLookEmpty(readings.value)) {
+        refresh()
+      }
+      startTimer()
+    })
 
-  onDeactivated(() => {
-    stopTimer()
-  })
+    onActivated(() => {
+      startTimer()
+      if (readingsLookEmpty(readings.value)) {
+        refresh()
+      }
+    })
 
-  onUnmounted(() => {
-    stopTimer()
-  })
+    onDeactivated(() => {
+      stopTimer()
+    })
+
+    onUnmounted(() => {
+      stopTimer()
+    })
+  }
 
   return {
     readings,

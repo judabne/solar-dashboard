@@ -2,8 +2,7 @@ import { decryptString, encryptString } from '../../utils/crypto'
 import { getSql } from '../../utils/db'
 import {
   shineAuthenticate,
-  shineQueryDeviceDataDayFull,
-  shineQueryDeviceDataOneDay
+  shineQueryDeviceDataDayFull
 } from './client'
 import {
   formatPlantDateYmd,
@@ -14,7 +13,11 @@ import {
 } from './dates'
 import { shineResolveValidatedDevice } from './discover'
 import { deviceDataReachable } from './deviceData'
-import { extractHistoryPoints, extractLatestRealtimeRow } from './normalize'
+import {
+  extractHistoryPoints,
+  extractLatestFromHistoryFallback,
+  extractLatestRealtimeRow
+} from './normalize'
 import type { HistoryPoint } from '#shared/types/readings'
 import type { ShineMonitorStoredSession } from './types'
 
@@ -241,20 +244,24 @@ export async function fetchShineMonitorLatest(deviceId: string) {
   try {
     let fresh = await ensureFreshSession(deviceId, session)
     const today = formatPlantDateYmd(new Date())
-    let response = await shineQueryDeviceDataOneDay(fresh.token, fresh.secret, {
-      ...fresh.device,
+    const deviceArgs = {
+      pn: fresh.device.pn,
+      sn: fresh.device.sn,
       devcode: String(fresh.device.devcode),
       devaddr: String(fresh.device.devaddr),
       date: today
-    })
+    }
+
+    let response = await shineQueryDeviceDataDayFull(fresh.token, fresh.secret, deviceArgs)
 
     if (!deviceDataReachable(response)) {
       fresh = await refreshStoredDevice(deviceId, fresh, fresh.token, fresh.secret)
-      response = await shineQueryDeviceDataOneDay(fresh.token, fresh.secret, {
-        ...fresh.device,
+      response = await shineQueryDeviceDataDayFull(fresh.token, fresh.secret, {
+        ...deviceArgs,
+        pn: fresh.device.pn,
+        sn: fresh.device.sn,
         devcode: String(fresh.device.devcode),
-        devaddr: String(fresh.device.devaddr),
-        date: today
+        devaddr: String(fresh.device.devaddr)
       })
     }
 
@@ -269,18 +276,14 @@ export async function fetchShineMonitorLatest(deviceId: string) {
     if (response.err !== 0) {
       return {
         available: true,
-        error: null,
-        readings: {
-          inverterUpdatedAt: null,
-          solarGenerationW: null,
-          gridPowerW: null,
-          homeConsumptionW: null,
-          workState: null
-        }
+        error: response.desc || `ShineMonitor error (${response.err})`,
+        readings: null
       }
     }
 
-    const parsed = extractLatestRealtimeRow(response.dat, today)
+    const parsed
+      = extractLatestRealtimeRow(response.dat, today)
+        ?? extractLatestFromHistoryFallback(response.dat, today)
     if (!parsed) {
       return {
         available: true,

@@ -286,6 +286,51 @@ export function extractLatestRealtimeRow(
   }
 }
 
+export type LatestRealtimeRow = NonNullable<ReturnType<typeof extractLatestRealtimeRow>>
+
+/** When realtime row parsing fails but day paging has points (same data charts use). */
+export function extractLatestFromHistoryFallback(
+  dat: ShineMonitorDataResponse['dat'],
+  plantDateYmd: string
+): LatestRealtimeRow | null {
+  if (!dat?.title?.length) {
+    return null
+  }
+
+  const metrics = ['solarGenerationW', 'gridPowerW', 'homeConsumptionW'] as const
+  let inverterUpdatedAt: string | null = null
+  const values: Partial<Record<(typeof metrics)[number], number | null>> = {}
+
+  for (const metric of metrics) {
+    const points = extractHistoryPoints(dat, metric, plantDateYmd)
+    const last = points[points.length - 1]
+    if (!last) {
+      continue
+    }
+    values[metric] = last.value
+    if (last.timestamp && (!inverterUpdatedAt || last.timestamp > inverterUpdatedAt)) {
+      inverterUpdatedAt = last.timestamp
+    }
+  }
+
+  if (
+    inverterUpdatedAt === null
+    && values.solarGenerationW === undefined
+    && values.gridPowerW === undefined
+    && values.homeConsumptionW === undefined
+  ) {
+    return null
+  }
+
+  return {
+    inverterUpdatedAt,
+    solarGenerationW: values.solarGenerationW ?? null,
+    gridPowerW: values.gridPowerW ?? null,
+    homeConsumptionW: values.homeConsumptionW ?? null,
+    workState: null
+  }
+}
+
 export function extractHistoryPoints(
   dat: ShineMonitorDataResponse['dat'],
   metric: 'solarGenerationW' | 'gridPowerW' | 'homeConsumptionW',

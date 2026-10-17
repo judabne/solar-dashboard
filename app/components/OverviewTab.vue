@@ -2,8 +2,29 @@
 import { overviewScrollPaneKey } from '~/composables/mainTabScroll'
 import { formatWatts, formatPercent, formatReadingTimestamp } from '~/utils/format'
 
+const { activeTab } = useMainTab()
 const { readings, loading, error, refresh } = useLatestReadings()
 const overviewScroll = inject(overviewScrollPaneKey)
+
+watch(
+  () => activeTab.value,
+  (tab) => {
+    if (tab !== 'overview') {
+      return
+    }
+    if (
+      readings.value === null
+      || (
+        readings.value.inverterUpdatedAt === null
+        && readings.value.homeConsumptionW === null
+        && readings.value.solarGenerationW === null
+      )
+    ) {
+      refresh()
+    }
+  },
+  { immediate: true }
+)
 const { pullDistance, pullActive, pullLabel, threshold } = usePullToRefresh(refresh, overviewScroll)
 
 const statusTone = computed(() => {
