@@ -51,6 +51,23 @@ const props = withDefaults(
 
 const chartRef = ref<{ chart?: Chart } | null>(null)
 
+/** Touch devices: tooltip on tap only so vertical scroll does not scrub the chart. */
+const isCoarsePointer = ref(window.matchMedia('(pointer: coarse)').matches)
+
+onMounted(() => {
+  const mq = window.matchMedia('(pointer: coarse)')
+  mq.addEventListener('change', (e) => {
+    isCoarsePointer.value = e.matches
+  })
+})
+
+const chartEventsCoarse: ChartOptions<'line'>['events'] = ['click', 'mouseout']
+const chartEventsFine: ChartOptions<'line'>['events'] = ['mousemove', 'mouseout', 'click']
+
+const chartEvents = computed(() =>
+  isCoarsePointer.value ? chartEventsCoarse : chartEventsFine
+)
+
 const chartData = computed<ChartData<'line'>>(() => {
   if (props.compareConsumption && props.comparisonPoints?.length) {
     const solarByTime = new Map(props.comparisonPoints.map(p => [p.x, p.y]))
@@ -104,6 +121,7 @@ const chartData = computed<ChartData<'line'>>(() => {
 const chartOptions = computed<ChartOptions<'line'>>(() => ({
   responsive: true,
   maintainAspectRatio: false,
+  events: chartEvents.value,
   interaction: {
     mode: 'nearest',
     intersect: false
@@ -120,13 +138,13 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
     },
     zoom: {
       pan: {
-        enabled: true,
+        enabled: !isCoarsePointer.value,
         mode: 'x',
         modifierKey: undefined
       },
       zoom: {
         wheel: { enabled: true },
-        pinch: { enabled: true },
+        pinch: { enabled: !isCoarsePointer.value },
         mode: 'x'
       }
     },
@@ -183,7 +201,7 @@ function resetZoom() {
       {{ unavailableMessage }}
     </p>
 
-    <div class="h-52 min-h-52 flex-1 sm:h-64 md:h-72">
+    <div class="h-52 min-h-52 flex-1 touch-pan-y sm:h-64 md:h-72">
       <Line
         v-if="points.length"
         ref="chartRef"
