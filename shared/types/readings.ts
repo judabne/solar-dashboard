@@ -11,7 +11,6 @@ export interface ProviderSourceMeta {
 export interface NormalizedReadings {
   inverterUpdatedAt: string | null
   batteryUpdatedAt: string | null
-  stale: boolean
   solarGenerationW: number | null
   gridPowerW: number | null
   homeConsumptionW: number | null

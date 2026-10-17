@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { dashboardSurfaceBorder } from '~/utils/dashboardSurface'
 import { METRIC_COLORS } from '~/utils/metricColors'
 import {
   Chart,
@@ -158,7 +159,7 @@ function resetZoom() {
 <template>
   <UCard
     :ui="{
-      root: 'dashboard-card h-full !ring-0',
+      root: `${dashboardSurfaceBorder} h-full`,
       body: 'flex h-full flex-col'
     }"
   >

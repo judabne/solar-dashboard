@@ -7,8 +7,6 @@ import {
   getShineMonitorStatus
 } from '../providers/shinemonitor/session'
 
-const STALE_MS = 2 * 60 * 1000
-
 export async function getLatestReadings(deviceId: string): Promise<NormalizedReadings> {
   const [shineStatus, shine, bataliStatus, batali] = await Promise.all([
     getShineMonitorStatus(deviceId),
@@ -19,17 +17,12 @@ export async function getLatestReadings(deviceId: string): Promise<NormalizedRea
 
   const inverterUpdatedAt = shine.readings?.inverterUpdatedAt ?? null
   const batteryUpdatedAt = batali.readings?.batteryUpdatedAt ?? null
-  const stale = inverterUpdatedAt
-    ? Date.now() - new Date(inverterUpdatedAt).getTime() > STALE_MS
-    : true
-
   const bataliProviderError = batali.error
     ?? (!bataliStatus.available ? bataliStatus.message : null)
 
   return {
     inverterUpdatedAt,
     batteryUpdatedAt,
-    stale,
     solarGenerationW: shine.readings?.solarGenerationW ?? null,
     gridPowerW: shine.readings?.gridPowerW ?? null,
     homeConsumptionW: shine.readings?.homeConsumptionW ?? null,
