@@ -35,6 +35,7 @@ export default defineNuxtConfig({
 
   nitro: {
     routeRules: {
+      '/charts': { redirect: '/' },
       '/api/**': {
         cors: false,
         headers: { 'Cache-Control': 'private, no-store' }

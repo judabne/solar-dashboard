@@ -13,7 +13,7 @@ let fetchInFlight = false
 export function useChartsHistory() {
   const api = useDashboardApi()
 
-  async function loadHistory(rangeHours: ChartHistoryRangeHours) {
+  async function loadHistory(rangeHours: ChartHistoryRangeHours): Promise<void> {
     if (fetchInFlight) {
       return
     }

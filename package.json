@@ -9,6 +9,9 @@
     "postinstall": "nuxt prepare",
     "prepare": "husky",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
     "typecheck": "nuxt typecheck",
     "db:migrate": "node scripts/migrate.mjs",
     "pwa:icons": "node scripts/resize-pwa-icons.mjs"
@@ -29,12 +32,18 @@
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",
+    "@nuxt/test-utils": "^4.3.4",
+    "@testing-library/user-event": "^14.6.8",
     "@types/node": "^26.6.5",
+    "@vitest/coverage-v8": "^5.0.5",
+    "@vue/test-utils": "^2.5.1",
     "eslint": "^10.12.0",
     "eslint-plugin-better-tailwindcss": "^4.9.0",
+    "happy-dom": "^21.0.3",
     "husky": "^9.1.7",
     "sharp": "^0.35.5",
     "typescript": "~5.9.3",
+    "vitest": "^5.0.5",
     "vue-tsc": "^3.3.13"
   }
 }
