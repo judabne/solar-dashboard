@@ -52,7 +52,7 @@ const loadSeries = computed(() => history.value?.series.find(s => s.metric === '
 
 <template>
   <div
-    class="page-shell space-y-4 md:space-y-5"
+    class="page-shell space-y-4 pb-10 md:space-y-5"
     data-testid="charts-tab"
   >
     <div
