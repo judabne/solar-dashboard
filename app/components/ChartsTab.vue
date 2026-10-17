@@ -1,12 +1,23 @@
 <script setup lang="ts">
 import type { HistoryResponse } from '#shared/types/readings'
+import { chartsScrollPaneKey } from '~/composables/mainTabScroll'
 import { dashboardSurfaceBorder } from '~/utils/dashboardSurface'
 import { METRIC_COLORS } from '~/utils/metricColors'
 
-definePageMeta({ layout: 'default', keepalive: true })
-
 const rangeHours = ref<24 | 72>(24)
+const { activeTab } = useMainTab()
 const { history, loading, error, loadHistory, ensureHistory } = useChartsHistory()
+const chartsScroll = inject(chartsScrollPaneKey)
+
+async function refreshCharts() {
+  await loadHistory(rangeHours.value)
+}
+
+const { pullDistance, pullActive, pullLabel, threshold } = usePullToRefresh(
+  refreshCharts,
+  chartsScroll,
+  () => activeTab.value === 'charts'
+)
 
 const rangeOptions = [
   { label: '24 hours', value: 24 as const },
@@ -21,11 +32,15 @@ function toChartPoints(series?: HistoryResponse['series'][number]) {
 }
 
 watch(rangeHours, (hours) => {
-  loadHistory(hours)
+  if (activeTab.value === 'charts') {
+    loadHistory(hours)
+  }
 })
 
-onMounted(() => {
-  ensureHistory(rangeHours.value)
+watch(activeTab, (tab) => {
+  if (tab === 'charts') {
+    ensureHistory(rangeHours.value)
+  }
 })
 
 const solarSeries = computed(() => history.value?.series.find(s => s.metric === 'solarGenerationW'))
@@ -34,14 +49,44 @@ const loadSeries = computed(() => history.value?.series.find(s => s.metric === '
 </script>
 
 <template>
-  <div class="page-shell space-y-4 md:space-y-5">
+  <div
+    class="page-shell space-y-4 md:space-y-5"
+    data-testid="charts-tab"
+  >
+    <div
+      data-testid="pull-refresh-indicator"
+      class="flex items-center justify-center overflow-hidden text-xs text-muted transition-[height,opacity] duration-150"
+      :style="{
+        height: pullDistance > 0 || pullActive ? '2rem' : '0',
+        opacity: pullDistance > 0 || pullActive ? 1 : 0
+      }"
+      aria-live="polite"
+    >
+      <span v-if="pullActive">Refreshing…</span>
+      <span v-else-if="pullLabel">{{ pullLabel }}</span>
+      <span
+        v-else-if="pullDistance > 0"
+        class="inline-block transition-transform"
+        :style="{ transform: `rotate(${Math.min(pullDistance / threshold, 1) * 180}deg)` }"
+      >
+        <UIcon
+          name="i-lucide-arrow-down"
+          class="size-4"
+        />
+      </span>
+    </div>
+
     <header class="flex items-center justify-between gap-3">
       <div>
         <h1 class="text-xl font-semibold">
           Charts
         </h1>
       </div>
-      <div class="flex shrink-0 items-center gap-0.5">
+      <div
+        class="flex shrink-0 items-center gap-0.5"
+        @touchstart.stop
+        @touchend.stop
+      >
         <ColorModeToggle />
         <UButton
           to="/settings"
@@ -49,12 +94,14 @@ const loadSeries = computed(() => history.value?.series.find(s => s.metric === '
           color="neutral"
           variant="ghost"
           aria-label="Settings"
+          data-testid="settings-link"
         />
       </div>
     </header>
 
     <USelect
       v-model="rangeHours"
+      data-testid="charts-range"
       :items="rangeOptions"
       value-key="value"
       label-key="label"

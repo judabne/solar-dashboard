@@ -102,7 +102,10 @@ const bataliConnected = computed(() => Boolean(status.value?.batali.connected))
 </script>
 
 <template>
-  <div class="page-shell pt-3">
+  <div
+    class="page-shell pt-3"
+    data-testid="settings-page"
+  >
     <button
       type="button"
       class="mb-4 inline-flex items-center gap-1 text-sm font-medium text-primary"
