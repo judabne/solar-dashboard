@@ -4,13 +4,12 @@ import { METRIC_COLORS } from '~/utils/metricColors'
 
 definePageMeta({ layout: 'default', keepalive: true })
 
-const rangeHours = ref(24)
+const rangeHours = ref<24 | 72>(24)
 const { history, loading, error, loadHistory, ensureHistory } = useChartsHistory()
 
 const rangeOptions = [
-  { label: '24 hours', value: 24 },
-  { label: '48 hours', value: 48 },
-  { label: '7 days', value: 168 }
+  { label: '24 hours', value: 24 as const },
+  { label: '3 days', value: 72 as const }
 ]
 
 function toChartPoints(series?: HistoryResponse['series'][number]) {
@@ -36,9 +35,11 @@ const loadSeries = computed(() => history.value?.series.find(s => s.metric === '
 <template>
   <div class="page-shell space-y-4 md:space-y-5">
     <header class="flex items-center justify-between gap-3">
-      <h1 class="text-xl font-semibold">
-        Charts
-      </h1>
+      <div>
+        <h1 class="text-xl font-semibold">
+          Charts
+        </h1>
+      </div>
       <div class="flex shrink-0 items-center gap-0.5">
         <ColorModeToggle />
         <UButton

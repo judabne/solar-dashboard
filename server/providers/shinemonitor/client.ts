@@ -206,34 +206,42 @@ async function requestDeviceData(
   return last
 }
 
+/** Live / snapshot payload (includes realtime row); preferred for “latest”. */
+export async function shineQueryDeviceDataSnapshot(
+  token: string,
+  secret: string,
+  args: DeviceDataArgs
+) {
+  return requestDeviceData(token, secret, deviceDataOneDayParts(args))
+}
+
 export async function shineQueryDeviceDataOneDay(
   token: string,
   secret: string,
   args: DeviceDataArgs
 ) {
+  const snapshot = await shineQueryDeviceDataSnapshot(token, secret, args)
+  if (deviceDataReachable(snapshot) && (snapshot.dat?.row?.length ?? 0) > 0) {
+    return snapshot
+  }
   const paging = await requestDeviceData(token, secret, deviceDataPagingParts(args, 0))
   if (deviceDataReachable(paging)) {
     return paging
   }
-  return requestDeviceData(token, secret, deviceDataOneDayParts(args))
+  return snapshot
 }
 
-export async function shineQueryDeviceDataDayFull(
+async function fetchDeviceDataPaged(
   token: string,
   secret: string,
   args: DeviceDataArgs
-): Promise<ShineMonitorDataResponse> {
-  const oneDay = await requestDeviceData(token, secret, deviceDataOneDayParts(args))
-  if (oneDay.err === 0 && oneDay.dat?.row?.length) {
-    return oneDay
-  }
-
+): Promise<ShineMonitorDataResponse | null> {
   for (const variant of shineMonitorBusinessVariants()) {
     let page = 0
     let title: ShineMonitorDataTitle[] | undefined
     const rows: ShineMonitorDataRow[] = []
 
-    while (page < 40) {
+    while (page < 80) {
       const body = await shineBusinessRequest<ShineMonitorDataResponse>(
         secret,
         token,
@@ -254,10 +262,10 @@ export async function shineQueryDeviceDataDayFull(
         break
       }
       rows.push(...batch)
-      const total = body.dat.total ?? rows.length
       const pagesize = body.dat.pagesize ?? batch.length
       page += 1
-      if (rows.length >= total || batch.length < pagesize) {
+      // Do not trust `dat.total` — the API often reports the first page size, not row count.
+      if (batch.length < pagesize) {
         return {
           err: 0,
           desc: 'ERR_NONE',
@@ -287,10 +295,74 @@ export async function shineQueryDeviceDataDayFull(
     }
   }
 
+  return null
+}
+
+function rowIdentity(row: ShineMonitorDataRow): string {
+  const values = row.field ?? row.filed ?? []
+  return values[0] ?? JSON.stringify(values)
+}
+
+/** Paging omits the live `realtime` row; snapshot always includes it. */
+function mergePagedDayWithSnapshot(
+  paged: ShineMonitorDataResponse,
+  snapshot: ShineMonitorDataResponse
+): ShineMonitorDataResponse {
+  const pagedRows = paged.dat?.row ?? []
+  const snapshotRows = snapshot.dat?.row ?? []
+  if (!snapshotRows.length) {
+    return paged
+  }
+
+  const title = paged.dat?.title?.length ? paged.dat.title : snapshot.dat?.title ?? []
+  const byId = new Map<string, ShineMonitorDataRow>()
+  for (const row of pagedRows) {
+    byId.set(rowIdentity(row), row)
+  }
+  for (const row of snapshotRows) {
+    const id = rowIdentity(row)
+    if (row.realtime === true || !byId.has(id)) {
+      byId.set(id, row)
+    }
+  }
+
+  const row = [...byId.values()]
+  return {
+    err: 0,
+    desc: 'ERR_NONE',
+    dat: {
+      title,
+      row,
+      total: row.length,
+      page: 0,
+      pagesize: row.length
+    }
+  }
+}
+
+export async function shineQueryDeviceDataDayFull(
+  token: string,
+  secret: string,
+  args: DeviceDataArgs
+): Promise<ShineMonitorDataResponse> {
+  const [paged, snapshot] = await Promise.all([
+    fetchDeviceDataPaged(token, secret, args),
+    shineQueryDeviceDataSnapshot(token, secret, args)
+  ])
+
+  if (paged?.dat?.row?.length) {
+    return mergePagedDayWithSnapshot(paged, snapshot)
+  }
+
+  if (deviceDataReachable(snapshot) && (snapshot.dat?.row?.length ?? 0) > 0) {
+    return snapshot
+  }
+
+  const oneDay = await requestDeviceData(token, secret, deviceDataOneDayParts(args))
   if (deviceDataReachable(oneDay)) {
     return oneDay
   }
-  return oneDay
+  return snapshot.err === 0 ? snapshot : oneDay
 }
 
 export async function shineQueryPlants(

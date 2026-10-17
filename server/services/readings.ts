@@ -1,5 +1,6 @@
 import type { BatteryStatus, HistoryResponse, NormalizedReadings } from '#shared/types/readings'
 import { fetchBataliLatest, getBataliStatus } from '../providers/batali'
+import type { ShineHistoryRangeHours } from '../providers/shinemonitor/dates'
 import {
   fetchShineMonitorHistory,
   fetchShineMonitorLatest,
@@ -52,42 +53,37 @@ export async function getLatestReadings(deviceId: string): Promise<NormalizedRea
 
 export async function getHistoryReadings(
   deviceId: string,
-  rangeStart: Date,
-  rangeEnd: Date
+  rangeHours: ShineHistoryRangeHours = 24
 ): Promise<HistoryResponse> {
-  const [solar, grid, load] = await Promise.all([
-    fetchShineMonitorHistory(deviceId, rangeStart, rangeEnd, 'solarGenerationW'),
-    fetchShineMonitorHistory(deviceId, rangeStart, rangeEnd, 'gridPowerW'),
-    fetchShineMonitorHistory(deviceId, rangeStart, rangeEnd, 'homeConsumptionW')
-  ])
+  const shine = await fetchShineMonitorHistory(deviceId, rangeHours)
 
   return {
-    rangeStart: rangeStart.toISOString(),
-    rangeEnd: rangeEnd.toISOString(),
+    rangeStart: shine.rangeStart.toISOString(),
+    rangeEnd: shine.rangeEnd.toISOString(),
     series: [
       {
         metric: 'solarGenerationW',
         label: 'Solar Generation',
         unit: 'W',
-        available: solar.available,
-        message: solar.message,
-        points: solar.points
+        available: shine.available,
+        message: shine.message,
+        points: shine.points.solarGenerationW
       },
       {
         metric: 'gridPowerW',
         label: 'Grid Power',
         unit: 'W',
-        available: grid.available,
-        message: grid.message,
-        points: grid.points
+        available: shine.available,
+        message: shine.message,
+        points: shine.points.gridPowerW
       },
       {
         metric: 'homeConsumptionW',
         label: 'Home Consumption',
         unit: 'W',
-        available: load.available,
-        message: load.message,
-        points: load.points
+        available: shine.available,
+        message: shine.message,
+        points: shine.points.homeConsumptionW
       },
       {
         metric: 'batteryPercent',

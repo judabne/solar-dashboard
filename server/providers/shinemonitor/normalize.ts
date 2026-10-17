@@ -1,4 +1,5 @@
 import type { BatteryStatus, HistoryPoint } from '#shared/types/readings'
+import { parsePlantDateTimeString } from './dates'
 import type { ShineMonitorDataResponse, ShineMonitorDataRow } from './types'
 
 const FIELD_ALIASES: Record<string, string[]> = {
@@ -123,11 +124,61 @@ const TIMESTAMP_TITLE_KEYS = [
   'date time'
 ]
 
-function parseTimestamp(idField: string | undefined, tsField: string | undefined): string | null {
+function parseUnixMillis(value: string | undefined): Date | null {
+  if (!value) {
+    return null
+  }
+  const trimmed = value.trim()
+  if (/^\d{13}$/.test(trimmed)) {
+    return new Date(Number(trimmed))
+  }
+  if (/^\d{10}$/.test(trimmed)) {
+    return new Date(Number(trimmed) * 1000)
+  }
+  return null
+}
+
+function combinePlantDateTime(
+  idField: string | undefined,
+  tsField: string | undefined,
+  plantDateYmd?: string
+): string | null {
+  const datePart = idField?.trim().replace(/\//g, '-').match(/^(\d{4}-\d{2}-\d{2})/)?.[1]
+    ?? plantDateYmd
+  const timeSource = tsField?.trim() || idField?.trim()
+  const timePart = timeSource?.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/)
+  if (!datePart || !timePart) {
+    return null
+  }
+  return `${datePart} ${timePart[1]}:${timePart[2]}:${timePart[3] ?? '00'}`
+}
+
+function parseTimestamp(
+  idField: string | undefined,
+  tsField: string | undefined,
+  plantDateYmd?: string
+): string | null {
+  const fromUnix = parseUnixMillis(idField) ?? parseUnixMillis(tsField)
+  if (fromUnix) {
+    return fromUnix.toISOString()
+  }
+
+  const combined = combinePlantDateTime(idField, tsField, plantDateYmd)
+  if (combined) {
+    const plantLocal = parsePlantDateTimeString(combined)
+    if (plantLocal) {
+      return plantLocal.toISOString()
+    }
+  }
+
   if (!tsField) {
     return null
   }
   const normalized = tsField.replace(/\s+/g, ' ').trim()
+  const plantLocal = parsePlantDateTimeString(normalized)
+  if (plantLocal) {
+    return plantLocal.toISOString()
+  }
   const candidates = [
     normalized.replace(' ', 'T'),
     normalized
@@ -139,7 +190,7 @@ function parseTimestamp(idField: string | undefined, tsField: string | undefined
     }
   }
   if (idField) {
-    const fallback = new Date(idField)
+    const fallback = new Date(idField.replace(/\//g, '-'))
     if (!Number.isNaN(fallback.getTime())) {
       return fallback.toISOString()
     }
@@ -149,16 +200,18 @@ function parseTimestamp(idField: string | undefined, tsField: string | undefined
 
 function extractRowTimestamp(
   values: string[],
-  titleIndex: Map<string, number>
+  titleIndex: Map<string, number>,
+  plantDateYmd?: string
 ): string | null {
   const tsIdx = findFieldIndex(titleIndex, TIMESTAMP_TITLE_KEYS)
   const tsField = tsIdx !== null ? values[tsIdx] : values[1]
-  return parseTimestamp(values[0], tsField)
+  return parseTimestamp(values[0], tsField, plantDateYmd)
 }
 
 function pickLatestDataRow(
   rows: ShineMonitorDataRow[],
-  titleIndex: Map<string, number>
+  titleIndex: Map<string, number>,
+  plantDateYmd?: string
 ): ShineMonitorDataRow | null {
   if (!rows.length) {
     return null
@@ -167,7 +220,7 @@ function pickLatestDataRow(
   const ranked = rows
     .map((row) => {
       const values = rowValues(row)
-      const updatedAt = extractRowTimestamp(values, titleIndex)
+      const updatedAt = extractRowTimestamp(values, titleIndex, plantDateYmd)
       const t = updatedAt ? new Date(updatedAt).getTime() : Number.NEGATIVE_INFINITY
       return { row, t, realtime: row.realtime === true }
     })
@@ -202,12 +255,15 @@ export function parseWorkStateBatteryStatus(workState: string | null): BatterySt
   return 'unknown'
 }
 
-export function extractLatestRealtimeRow(dat: ShineMonitorDataResponse['dat']) {
+export function extractLatestRealtimeRow(
+  dat: ShineMonitorDataResponse['dat'],
+  plantDateYmd?: string
+) {
   if (!dat?.row?.length || !dat.title?.length) {
     return null
   }
   const titleIndex = buildTitleIndex(dat.title)
-  const row = pickLatestDataRow(dat.row, titleIndex)
+  const row = pickLatestDataRow(dat.row, titleIndex, plantDateYmd)
   if (!row) {
     return null
   }
@@ -216,7 +272,7 @@ export function extractLatestRealtimeRow(dat: ShineMonitorDataResponse['dat']) {
     return null
   }
 
-  const updatedAt = extractRowTimestamp(values, titleIndex)
+  const updatedAt = extractRowTimestamp(values, titleIndex, plantDateYmd)
 
   const workStateRaw = findFieldIndexFuzzy(titleIndex, FIELD_ALIASES.workState ?? [])
   const workState = workStateRaw === null ? null : values[workStateRaw] ?? null
@@ -232,7 +288,8 @@ export function extractLatestRealtimeRow(dat: ShineMonitorDataResponse['dat']) {
 
 export function extractHistoryPoints(
   dat: ShineMonitorDataResponse['dat'],
-  metric: 'solarGenerationW' | 'gridPowerW' | 'homeConsumptionW'
+  metric: 'solarGenerationW' | 'gridPowerW' | 'homeConsumptionW',
+  plantDateYmd?: string
 ): HistoryPoint[] {
   if (!dat?.row?.length || !dat.title?.length) {
     return []
@@ -245,7 +302,7 @@ export function extractHistoryPoints(
   const points: HistoryPoint[] = []
   for (const row of dat.row) {
     const values = rowValues(row)
-    const timestamp = extractRowTimestamp(values, titleIndex)
+    const timestamp = extractRowTimestamp(values, titleIndex, plantDateYmd)
     if (!timestamp) {
       continue
     }
