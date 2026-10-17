@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { HistoryResponse } from '#shared/types/readings'
+import { dashboardSurfaceBorder } from '~/utils/dashboardSurface'
 import { METRIC_COLORS } from '~/utils/metricColors'
 
 definePageMeta({ layout: 'default', keepalive: true })
@@ -59,8 +60,8 @@ const loadSeries = computed(() => history.value?.series.find(s => s.metric === '
       label-key="label"
       class="w-full"
       :ui="{
-        base: 'dashboard-border !ring-0 w-full',
-        content: 'dashboard-border !ring-0 bg-default shadow-lg overflow-hidden'
+        base: `${dashboardSurfaceBorder} w-full`,
+        content: `${dashboardSurfaceBorder} bg-default shadow-lg overflow-hidden`
       }"
     />
 

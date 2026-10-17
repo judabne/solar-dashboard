@@ -135,10 +135,6 @@ const batteryValue = computed(() => {
           :datetime="readings.inverterUpdatedAt"
         >{{ formatReadingTimestamp(readings.inverterUpdatedAt) }}</time>
         <span v-else>—</span>
-        <span
-          v-if="readings?.stale"
-          class="text-warning"
-        > · may be stale</span>
       </p>
       <p>
         Battery:

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { dashboardSurfaceBorder } from '~/utils/dashboardSurface'
+
 defineProps<{
   title: string
   value: string
@@ -14,7 +16,7 @@ defineProps<{
 <template>
   <UCard
     :ui="{
-      root: 'dashboard-card h-full !ring-0',
+      root: `${dashboardSurfaceBorder} h-full`,
       body: 'flex h-full flex-col p-4 sm:p-5'
     }"
   >
