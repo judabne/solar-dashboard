@@ -1,3 +1,2 @@
 # solar-dashboard
-
-Solar dashboard project.
+Simplified monitoring for MUST and Batali equipment
