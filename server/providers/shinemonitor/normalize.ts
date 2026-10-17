@@ -68,7 +68,7 @@ function findMetricColumnIndex(
   metric: keyof typeof FIELD_ALIASES
 ): number | null {
   const aliases = FIELD_ALIASES[metric] ?? []
-  let idx = findFieldIndexFuzzy(titleIndex, aliases)
+  const idx = findFieldIndexFuzzy(titleIndex, aliases)
   if (idx !== null) {
     return idx
   }

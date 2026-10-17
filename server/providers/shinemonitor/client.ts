@@ -232,7 +232,6 @@ export async function shineQueryDeviceDataDayFull(
     let page = 0
     let title: ShineMonitorDataTitle[] | undefined
     const rows: ShineMonitorDataRow[] = []
-    let total = Number.POSITIVE_INFINITY
 
     while (page < 40) {
       const body = await shineBusinessRequest<ShineMonitorDataResponse>(
@@ -255,7 +254,7 @@ export async function shineQueryDeviceDataDayFull(
         break
       }
       rows.push(...batch)
-      total = body.dat.total ?? rows.length
+      const total = body.dat.total ?? rows.length
       const pagesize = body.dat.pagesize ?? batch.length
       page += 1
       if (rows.length >= total || batch.length < pagesize) {

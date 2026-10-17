@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { METRIC_COLORS } from '~/utils/metricColors'
 import {
   Chart,
   LineElement,
@@ -29,15 +30,23 @@ Chart.register(
   zoomPlugin
 )
 
-const props = defineProps<{
-  title: string
-  unit: string
-  points: Array<{ x: number, y: number | null }>
-  comparisonPoints?: Array<{ x: number, y: number | null }>
-  compareConsumption?: boolean
-  showZeroBaseline?: boolean
-  unavailableMessage?: string | null
-}>()
+const props = withDefaults(
+  defineProps<{
+    title: string
+    unit: string
+    points: Array<{ x: number, y: number | null }>
+    comparisonPoints?: Array<{ x: number, y: number | null }>
+    compareConsumption?: boolean
+    showZeroBaseline?: boolean
+    unavailableMessage?: string | null
+    lineColor?: string
+    fillColor?: string
+  }>(),
+  {
+    lineColor: METRIC_COLORS.solar.line,
+    fillColor: METRIC_COLORS.solar.fill
+  }
+)
 
 const chartRef = ref<{ chart?: Chart } | null>(null)
 
@@ -50,7 +59,9 @@ const chartData = computed<ChartData<'line'>>(() => {
       const solar = solarByTime.get(point.x)
       let color = '#94a3b8'
       if (point.y !== null && solar !== null && solar !== undefined) {
-        color = point.y <= solar ? '#16a34a' : '#dc2626'
+        color = point.y <= solar
+          ? METRIC_COLORS.consumptionBelowSolar
+          : METRIC_COLORS.consumptionAboveSolar
       }
       segments.push({ ...point, color })
     }
@@ -77,8 +88,8 @@ const chartData = computed<ChartData<'line'>>(() => {
       {
         label: props.title,
         data: props.points,
-        borderColor: '#f59e0b',
-        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+        borderColor: props.lineColor,
+        backgroundColor: props.fillColor,
         fill: false,
         borderWidth: 2,
         pointRadius: 0,
@@ -164,7 +175,10 @@ function resetZoom() {
       />
     </div>
 
-    <p v-if="unavailableMessage" class="text-sm text-muted mb-3">
+    <p
+      v-if="unavailableMessage"
+      class="text-sm text-muted mb-3"
+    >
       {{ unavailableMessage }}
     </p>
 
@@ -175,7 +189,10 @@ function resetZoom() {
         :data="chartData"
         :options="chartOptions"
       />
-      <p v-else class="text-sm text-muted h-full flex items-center justify-center">
+      <p
+        v-else
+        class="text-sm text-muted h-full flex items-center justify-center"
+      >
         No data for this period
       </p>
     </div>

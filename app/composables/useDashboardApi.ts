@@ -28,14 +28,14 @@ export function useDashboardApi() {
       return parseApiResult(result)
     } catch (error) {
       if (isApiFailure(error)) {
-        throw new Error(providerAuthMessage(error.code, error.message))
+        throw new Error(providerAuthMessage(error.code, error.message), { cause: error })
       }
 
       const message = toDisplayMessage(error)
       if (message) {
-        throw new Error(message)
+        throw new Error(message, { cause: error })
       }
-      throw new Error('')
+      throw new Error('Request failed', { cause: error })
     }
   }
 

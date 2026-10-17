@@ -2,6 +2,8 @@
 defineProps<{
   title: string
   value: string
+  icon: string
+  iconClass?: string
   subtitle?: string
   loading?: boolean
   tone?: 'default' | 'warning' | 'error'
@@ -12,29 +14,36 @@ defineProps<{
 <template>
   <UCard
     :ui="{
-      root: 'h-full',
+      root: 'h-full ring-1 ring-default',
       body: 'flex h-full flex-col p-4 sm:p-5'
     }"
   >
-    <p class="text-sm text-muted mb-1">
+    <UIcon
+      :name="icon"
+      class="mb-3 size-7 shrink-0"
+      :class="iconClass"
+    />
+    <p class="mb-1 text-sm text-muted">
       {{ title }}
     </p>
     <p
       class="text-2xl font-semibold tracking-tight"
       :class="[
-        {
-          'text-warning': tone === 'warning',
-          'text-error': tone === 'error'
-        },
-        valueClass
+        valueClass || (tone === 'warning' ? 'text-warning' : tone === 'error' ? 'text-error' : 'text-highlighted')
       ]"
     >
-      <span v-if="loading" class="inline-block h-7 w-24 animate-pulse rounded bg-elevated" />
+      <span
+        v-if="loading"
+        class="inline-block h-8 w-28 animate-pulse rounded bg-elevated"
+      />
       <span v-else>{{ value }}</span>
     </p>
     <div class="mt-auto min-h-9 pt-2">
       <slot name="subtitle">
-        <p v-if="subtitle" class="text-xs text-muted">
+        <p
+          v-if="subtitle"
+          class="text-xs text-muted"
+        >
           {{ subtitle }}
         </p>
       </slot>

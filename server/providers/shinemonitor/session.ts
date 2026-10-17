@@ -9,7 +9,7 @@ import { eachLocalDayInRange } from './dates'
 import { shineResolveValidatedDevice } from './discover'
 import { deviceDataReachable } from './deviceData'
 import { extractHistoryPoints, extractLatestRealtimeRow } from './normalize'
-import type { ShineMonitorDevice, ShineMonitorStoredSession } from './types'
+import type { ShineMonitorStoredSession } from './types'
 
 const PROVIDER = 'shinemonitor'
 

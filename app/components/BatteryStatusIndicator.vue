@@ -34,7 +34,10 @@ const icon = computed(() => {
 
 <template>
   <div class="inline-flex items-center gap-2 rounded-full bg-elevated px-3 py-1.5 text-sm">
-    <UIcon :name="icon" class="size-4" />
+    <UIcon
+      :name="icon"
+      class="size-4"
+    />
     <span>{{ label }}</span>
   </div>
 </template>
