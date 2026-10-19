@@ -110,7 +110,7 @@ const bataliConnected = computed(() => Boolean(status.value?.batali.connected))
   >
     <button
       type="button"
-      class="mb-4 inline-flex items-center gap-1 text-sm font-medium text-primary"
+      class="mb-4 inline-flex cursor-pointer items-center gap-1 text-sm font-medium text-primary"
       @click="goBack"
     >
       <UIcon

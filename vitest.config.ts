@@ -12,11 +12,8 @@ export default defineVitestConfig({
   test: {
     include: ['tests/nuxt/**/*.test.ts', 'tests/unit/**/*.test.ts'],
     environment: 'nuxt',
-    poolOptions: {
-      threads: {
-        singleThread: true
-      }
-    },
+    testTimeout: 5000,
+    fileParallelism: false,
     setupFiles: [
       './tests/setup/touch.ts',
       './tests/setup/stubs.ts',

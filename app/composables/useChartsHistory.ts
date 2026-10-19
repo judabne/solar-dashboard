@@ -11,6 +11,15 @@ const loadedRangeHours = ref<ChartHistoryRangeHours | null>(null)
 
 let fetchInFlight = false
 
+/** Clears module singleton state between tests. */
+export function resetChartsHistoryForTests() {
+  history.value = null
+  loading.value = false
+  error.value = null
+  loadedRangeHours.value = null
+  fetchInFlight = false
+}
+
 export function useChartsHistory() {
   const api = useDashboardApi()
 

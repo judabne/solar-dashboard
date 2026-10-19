@@ -12,6 +12,18 @@ let fetchInFlight = false
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 let timerTick: (() => void) | null = null
 
+/** Clears module singleton state between tests. */
+export function resetLatestReadingsForTests() {
+  readings.value = null
+  loading.value = false
+  error.value = null
+  fetchInFlight = false
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+}
+
 /** Re-bind the polling interval (e.g. after switching to fake timers in tests). */
 export function restartLatestReadingsPolling() {
   if (!isClient() || !timerTick) {

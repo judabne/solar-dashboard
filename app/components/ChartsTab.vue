@@ -38,11 +38,15 @@ if (import.meta.client) {
     }
   })
 
-  watch(activeTab, (tab) => {
-    if (tab === 'charts') {
-      ensureHistory(rangeHours.value)
-    }
-  })
+  watch(
+    activeTab,
+    (tab) => {
+      if (tab === 'charts') {
+        ensureHistory(rangeHours.value)
+      }
+    },
+    { immediate: true }
+  )
 }
 
 const solarSeries = computed(() => history.value?.series.find(s => s.metric === 'solarGenerationW'))
