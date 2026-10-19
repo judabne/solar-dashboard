@@ -150,6 +150,15 @@ export function usePullToRefresh(
     { immediate: true }
   )
 
+  function detach() {
+    if (boundEl) {
+      unbind(boundEl)
+    }
+  }
+
+  onDeactivated(detach)
+  onUnmounted(detach)
+
   const pullLabel = computed(() => {
     if (pullActive.value) {
       return 'Refreshing…'

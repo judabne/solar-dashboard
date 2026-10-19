@@ -1,4 +1,4 @@
-export default defineNuxtPlugin(async () => {
+export default defineNuxtPlugin(() => {
   const { ensurePaired } = useDeviceAuth()
-  await ensurePaired()
+  void ensurePaired()
 })

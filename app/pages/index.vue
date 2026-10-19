@@ -1,8 +1,8 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'default', keepalive: true, ssr: false })
+definePageMeta({ layout: 'default', ssr: false })
 
-// Poll on the page (pre–PR #6), not only inside OverviewTab / KeepAlive tree.
-useLatestReadings()
+// Fetch latest when opening home (no background interval).
+useLatestReadings({ poll: true })
 </script>
 
 <template>

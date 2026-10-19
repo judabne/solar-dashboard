@@ -22,19 +22,30 @@ const {
   onTouchCancel
 } = useMainTabPager(viewportWidth)
 
-onMounted(() => {
+let resizeObserver: ResizeObserver | null = null
+
+function bindResizeObserver() {
   const el = viewport.value
-  if (!el) {
+  if (!el || resizeObserver) {
     return
   }
   const measure = () => {
     viewportWidth.value = el.clientWidth
   }
   measure()
-  const observer = new ResizeObserver(measure)
-  observer.observe(el)
-  onUnmounted(() => observer.disconnect())
-})
+  resizeObserver = new ResizeObserver(measure)
+  resizeObserver.observe(el)
+}
+
+function unbindResizeObserver() {
+  resizeObserver?.disconnect()
+  resizeObserver = null
+}
+
+onMounted(bindResizeObserver)
+onActivated(bindResizeObserver)
+onDeactivated(unbindResizeObserver)
+onUnmounted(unbindResizeObserver)
 </script>
 
 <template>
@@ -61,9 +72,7 @@ onMounted(() => {
         ]"
         :inert="activeIndex !== 0"
       >
-        <KeepAlive>
-          <OverviewTab />
-        </KeepAlive>
+        <OverviewTab v-if="activeIndex === 0" />
       </div>
       <div
         ref="chartsScroll"
@@ -72,9 +81,7 @@ onMounted(() => {
         :class="activeIndex !== 1 && 'pointer-events-none'"
         :inert="activeIndex !== 1"
       >
-        <KeepAlive>
-          <ChartsTab />
-        </KeepAlive>
+        <ChartsTab v-if="activeIndex === 1" />
       </div>
     </div>
   </div>

@@ -124,7 +124,7 @@ const batteryValue = computed(() => {
         <template #subtitle>
           <p
             v-if="!loading"
-            class="text-xs text-muted"
+            class="text-sm text-muted"
           >
             Today: {{ formatKilowattHours(readings?.solarGeneratedTodayKwh) }}
           </p>
