@@ -31,6 +31,7 @@ Optional overrides in `.env` / Vercel:
 | ShineMonitor field | Dashboard metric |
 | --- | --- |
 | Charger Power | Solar generation (W) |
+| `queryPlantDeviceDesignatedInformation` (`energy_today`) | Solar generated today (kWh) on Overview |
 | PLoad | Home consumption (W) |
 | PGrid | Grid power (W) — import/export sign not verified |
 | work state | Battery charge direction hint only (not from batt current sign) |

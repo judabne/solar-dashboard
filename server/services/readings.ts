@@ -29,6 +29,7 @@ export async function getLatestReadings(deviceId: string): Promise<NormalizedRea
     inverterUpdatedAt,
     batteryUpdatedAt,
     solarGenerationW: shine.readings?.solarGenerationW ?? null,
+    solarGeneratedTodayKwh: shine.readings?.solarGeneratedTodayKwh ?? null,
     gridPowerW: shine.readings?.gridPowerW ?? null,
     homeConsumptionW: shine.readings?.homeConsumptionW ?? null,
     batteryPercent: batali.readings?.batteryPercent ?? null,

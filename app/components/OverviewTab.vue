@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { overviewScrollPaneKey } from '~/composables/mainTabScroll'
 import { isClient } from '~/utils/clientOnly'
-import { formatWatts, formatPercent, formatReadingTimestamp } from '~/utils/format'
+import { formatKilowattHours, formatWatts, formatPercent, formatReadingTimestamp } from '~/utils/format'
 
 const { activeTab } = useMainTab()
 const { readings, loading, error, refresh } = useLatestReadings()
@@ -120,7 +120,16 @@ const batteryValue = computed(() => {
         :value="formatWatts(readings?.solarGenerationW)"
         :loading="loading"
         :tone="statusTone"
-      />
+      >
+        <template #subtitle>
+          <p
+            v-if="!loading"
+            class="text-xs text-muted"
+          >
+            Today: {{ formatKilowattHours(readings?.solarGeneratedTodayKwh) }}
+          </p>
+        </template>
+      </MetricCard>
       <MetricCard
         title="Grid Power"
         icon="i-lucide-zap"

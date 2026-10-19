@@ -15,6 +15,8 @@ export interface ShineMonitorDevice {
   devaddr: string | number
   sn: string
   alias?: string
+  /** Protocol device type (used by `queryPlantDeviceDesignatedInformation`). */
+  devtype?: string | number
 }
 
 export interface ShineMonitorStoredSession {
@@ -24,6 +26,16 @@ export interface ShineMonitorStoredSession {
   token: string
   tokenExpiresAt: string
   device: ShineMonitorDevice
+  plantId?: string
+}
+
+export interface ShineMonitorTodayPvChartsResponse {
+  err: number
+  desc: string
+  dat?: Record<string, unknown> & {
+    row?: ShineMonitorDataRow[]
+    title?: ShineMonitorDataTitle[]
+  }
 }
 
 export interface ShineMonitorDeviceRow {
@@ -92,6 +104,20 @@ export interface ShineMonitorDataRow {
   realtime?: boolean
   field?: string[]
   filed?: string[]
+}
+
+export interface ShineMonitorEnergyDayResponse {
+  err: number
+  desc: string
+  dat?: {
+    energy?: string
+  }
+}
+
+export interface ShineMonitorDesignatedInfoResponse {
+  err: number
+  desc: string
+  dat?: unknown
 }
 
 export interface ShineMonitorDataResponse {

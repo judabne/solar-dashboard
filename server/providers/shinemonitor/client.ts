@@ -10,6 +10,7 @@ import type {
   ShineMonitorDataResponse,
   ShineMonitorDataRow,
   ShineMonitorDataTitle,
+  ShineMonitorDesignatedInfoResponse,
   ShineMonitorDevicesResponse,
   ShineMonitorPlantsResponse
 } from './types'
@@ -363,6 +364,25 @@ export async function shineQueryDeviceDataDayFull(
     return oneDay
   }
   return snapshot.err === 0 ? snapshot : oneDay
+}
+
+export async function shineQueryPlantDeviceDesignatedInformation(
+  token: string,
+  secret: string,
+  args: {
+    plantid: string
+    devtype: string | number
+    parameter: string
+  },
+  options?: ShineMonitorBusinessRequestOptions
+): Promise<ShineMonitorDesignatedInfoResponse> {
+  return shineBusinessRequest<ShineMonitorDesignatedInfoResponse>(secret, token, [
+    ['action', 'queryPlantDeviceDesignatedInformation'],
+    ['plantid', String(args.plantid)],
+    ['devtype', String(args.devtype)],
+    ['parameter', args.parameter],
+    ...localeParams()
+  ], options)
 }
 
 export async function shineQueryPlants(

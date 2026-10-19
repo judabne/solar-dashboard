@@ -5,6 +5,7 @@ import type { HistoryResponse, NormalizedReadings } from '#shared/types/readings
 
 const latestFixture: NormalizedReadings = {
   solarGenerationW: 1200,
+  solarGeneratedTodayKwh: 7.7,
   gridPowerW: -50,
   homeConsumptionW: 400,
   batteryPercent: null,
