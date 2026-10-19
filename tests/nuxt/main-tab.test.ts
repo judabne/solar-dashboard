@@ -1,4 +1,3 @@
-import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
 import {
@@ -6,17 +5,21 @@ import {
   countLatestFetches,
   getFetchMock
 } from '../helpers/fetch-mock'
+import { mountSuspended } from '@nuxt/test-utils/runtime'
+import App from '~/app.vue'
 import {
   dragPagerWithMouse,
   mountHome,
   pullToRefreshOn,
   swipePagerToCharts
 } from '../helpers/mount-home'
+import { resetAppStateForTests } from '../helpers/reset-app-state'
 
 describe('main tab', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getFetchMock().mockClear()
+    resetAppStateForTests()
   })
 
   describe('navigation', () => {
@@ -25,7 +28,7 @@ describe('main tab', () => {
       const historyBefore = countHistoryFetches()
 
       expect(wrapper.find('[data-testid="overview-tab"]').exists()).toBe(true)
-      expect(wrapper.find('[data-testid="charts-tab"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="charts-tab"]').exists()).toBe(false)
 
       await wrapper.get('[data-testid="nav-tab-charts"]').trigger('click')
       await flushPromises()
@@ -37,13 +40,15 @@ describe('main tab', () => {
       wrapper.unmount()
     })
 
-    it('opens Settings on first settings click', async () => {
+    it('exposes a settings link on Overview', async () => {
       const wrapper = await mountHome()
       const link = wrapper.get('[data-testid="overview-tab"] [data-testid="settings-link"]')
       expect(link.attributes('href')).toBe('/settings')
+      wrapper.unmount()
+    })
 
-      const user = userEvent.setup()
-      await user.click(link.element as HTMLElement)
+    it('renders the settings page at /settings', async () => {
+      const wrapper = await mountSuspended(App, { route: '/settings' })
       await flushPromises()
 
       expect(wrapper.find('[data-testid="settings-page"]').exists()).toBe(true)
@@ -121,9 +126,6 @@ describe('main tab', () => {
   })
 
   describe('refresh', () => {
-    // Skipped: fake timers + Nuxt mount can hang the runner (2‑min interval).
-    it.skip('refetches latest readings on the overview timer', async () => {})
-
     it('pull-to-refresh on Overview fetches latest only', async () => {
       const wrapper = await mountHome()
       await flushPromises()

@@ -1,0 +1,11 @@
+{
+  "remoteName": "origin",
+  "projects": [
+    {
+      "id": "prj_mIC6r2Ohl88Jbmp0nucSmOuPnvv3",
+      "name": "solar-dashboard",
+      "directory": ".",
+      "orgId": "team_PtmZpMl43nBSh5MqtjT4ARjV"
+    }
+  ]
+}

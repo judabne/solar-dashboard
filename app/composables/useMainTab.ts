@@ -3,6 +3,11 @@ import { mainTabIndex } from '~/utils/mainTab'
 
 const activeTab = ref<MainTabId>('overview')
 
+/** Resets tab state between tests. */
+export function resetMainTabForTests() {
+  activeTab.value = 'overview'
+}
+
 export function useMainTab() {
   const activeIndex = computed(() => mainTabIndex(activeTab.value))
 
