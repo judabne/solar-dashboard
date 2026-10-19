@@ -1,3 +1,11 @@
+export function formatKilowattHours(value: number | null | undefined): string {
+  if (value === null || value === undefined) {
+    return 'Unknown'
+  }
+  const rounded = Math.round(value * 10) / 10
+  return `${rounded.toLocaleString(undefined, { maximumFractionDigits: 1 })} kWh`
+}
+
 export function formatWatts(value: number | null | undefined): string {
   if (value === null || value === undefined) {
     return '—'

@@ -1,16 +1,18 @@
 import { decryptString, encryptString } from '../../utils/crypto'
 import { getSql } from '../../utils/db'
-import {
-  shineAuthenticate,
-  shineQueryDeviceDataDayFull
-} from './client'
+import { shineAuthenticate, shineQueryDeviceDataDayFull } from './client'
+import { fetchPlantEnergyTodayKwh } from './designatedInfo'
 import {
   getPlantTodayRange,
   historyWindowStart,
   plantDaysForHistoryRange,
   type ShineHistoryRangeHours
 } from './dates'
-import { shineResolveValidatedDevice } from './discover'
+import {
+  enrichDeviceForPlant,
+  shineResolvePlantIdForDevice,
+  shineResolveValidatedDevice
+} from './discover'
 import { deviceDataReachable } from './deviceData'
 import {
   extractHistoryPoints,
@@ -82,6 +84,42 @@ function applyHistoryWindow(
     rangeStart,
     rangeEnd
   }
+}
+
+async function ensurePlantContext(
+  deviceId: string,
+  session: ShineMonitorStoredSession
+): Promise<ShineMonitorStoredSession> {
+  let plantId = session.plantId ?? null
+  if (!plantId) {
+    plantId = await shineResolvePlantIdForDevice(session.token, session.secret, session.device)
+  }
+  if (!plantId) {
+    return session
+  }
+
+  const device = await enrichDeviceForPlant(session.token, session.secret, plantId, session.device)
+  if (plantId === session.plantId && device === session.device) {
+    return session
+  }
+
+  const next = { ...session, plantId, device }
+  await saveSession(deviceId, next, session.username)
+  return next
+}
+
+async function fetchSolarGeneratedTodayKwh(
+  deviceId: string,
+  session: ShineMonitorStoredSession
+): Promise<number | null> {
+  const fresh = await ensurePlantContext(deviceId, session)
+  const plantId = fresh.plantId
+  const devtype = fresh.device.devtype
+  if (!plantId || devtype === undefined || devtype === '') {
+    return null
+  }
+
+  return fetchPlantEnergyTodayKwh(fresh.token, fresh.secret, plantId, devtype)
 }
 
 async function refreshStoredDevice(
@@ -169,13 +207,19 @@ export async function connectShineMonitor(deviceId: string, username: string, pa
     })
   }
 
+  const plantId = await shineResolvePlantIdForDevice(auth.token, auth.secret, device)
+  const resolvedDevice = plantId
+    ? await enrichDeviceForPlant(auth.token, auth.secret, plantId, device)
+    : device
+
   const session: ShineMonitorStoredSession = {
     username,
     passwordEnc: encryptString(password),
     secret: auth.secret,
     token: auth.token,
     tokenExpiresAt: new Date(Date.now() + auth.expire * 1000).toISOString(),
-    device
+    device: resolvedDevice,
+    ...(plantId ? { plantId } : {})
   }
   await saveSession(deviceId, session, username)
 }
@@ -278,6 +322,7 @@ export async function fetchShineMonitorLatest(deviceId: string) {
 
   try {
     let fresh = await ensureFreshSession(deviceId, session)
+    const energyTodayPromise = fetchSolarGeneratedTodayKwh(deviceId, fresh)
     let deviceRefreshed = false
     let best: LatestRealtimeRow | null = null
     let lastError: string | null = null
@@ -328,12 +373,15 @@ export async function fetchShineMonitorLatest(deviceId: string) {
       }
     }
 
+    const solarGeneratedTodayKwh = await energyTodayPromise
+
     return {
       available: true,
       error: null,
       readings: {
         inverterUpdatedAt: best.inverterUpdatedAt,
         solarGenerationW: best.solarGenerationW,
+        solarGeneratedTodayKwh,
         gridPowerW: best.gridPowerW,
         homeConsumptionW: best.homeConsumptionW,
         workState: best.workState

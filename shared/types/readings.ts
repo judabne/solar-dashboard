@@ -12,6 +12,8 @@ export interface NormalizedReadings {
   inverterUpdatedAt: string | null
   batteryUpdatedAt: string | null
   solarGenerationW: number | null
+  /** Plant-day PV total from ShineMonitor `energy_today` (kWh). */
+  solarGeneratedTodayKwh: number | null
   gridPowerW: number | null
   homeConsumptionW: number | null
   batteryPercent: number | null
