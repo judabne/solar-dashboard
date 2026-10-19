@@ -8,7 +8,6 @@ definePageMeta({ layout: 'default' })
 
 const router = useRouter()
 const api = useDashboardApi()
-const { ensurePaired } = useDeviceAuth()
 
 const status = ref<ProvidersStatusResponse | null>(null)
 const loading = ref(true)
@@ -22,10 +21,6 @@ const shineError = ref<string | null>(null)
 const bataliError = ref<string | null>(null)
 
 function goBack() {
-  if (import.meta.client && window.history.length > 1) {
-    router.back()
-    return
-  }
   router.push('/')
 }
 
@@ -98,9 +93,8 @@ async function logoutBatali() {
   }
 }
 
-onMounted(async () => {
-  await ensurePaired()
-  await loadStatus()
+onMounted(() => {
+  void loadStatus()
 })
 
 const shineConnected = computed(() =>
@@ -163,15 +157,7 @@ const bataliConnected = computed(() => Boolean(status.value?.batali.connected))
         </template>
 
         <div
-          v-if="loading"
-          class="space-y-2"
-        >
-          <USkeleton class="h-8 w-full" />
-          <USkeleton class="h-8 w-full" />
-        </div>
-
-        <div
-          v-else-if="shineConnected"
+          v-if="shineConnected"
           class="space-y-3"
         >
           <p class="text-sm">
@@ -184,6 +170,14 @@ const bataliConnected = computed(() => Boolean(status.value?.batali.connected))
             :loading="shineBusy"
             @click="logoutShine"
           />
+        </div>
+
+        <div
+          v-else-if="loading"
+          class="space-y-2"
+        >
+          <USkeleton class="h-8 w-full" />
+          <USkeleton class="h-8 w-full" />
         </div>
 
         <form

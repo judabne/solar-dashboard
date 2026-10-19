@@ -10,7 +10,6 @@ const error = ref<string | null>(null)
 
 let fetchInFlight = false
 let refreshTimer: ReturnType<typeof setInterval> | null = null
-let pollingHooked = false
 let timerTick: (() => void) | null = null
 
 /** Re-bind the polling interval (e.g. after switching to fake timers in tests). */
@@ -25,19 +24,13 @@ export function restartLatestReadingsPolling() {
   refreshTimer = setInterval(timerTick, REFRESH_MS)
 }
 
-function readingsLookEmpty(value: NormalizedReadings | null) {
-  if (!value) {
-    return true
-  }
-  return (
-    value.inverterUpdatedAt === null
-    && value.solarGenerationW === null
-    && value.gridPowerW === null
-    && value.homeConsumptionW === null
-  )
+type UseLatestReadingsOptions = {
+  /** Start interval + fetch when the home page mounts (call once from `pages/index.vue`). */
+  poll?: boolean
 }
 
-export function useLatestReadings() {
+export function useLatestReadings(options: UseLatestReadingsOptions = {}) {
+  const route = useRoute()
   const api = useDashboardApi()
 
   async function refresh() {
@@ -62,7 +55,7 @@ export function useLatestReadings() {
   }
 
   function tick() {
-    if (document.hidden) {
+    if (document.hidden || route.path !== '/') {
       return
     }
     refresh()
@@ -81,30 +74,33 @@ export function useLatestReadings() {
     }
   }
 
-  if (isClient() && !pollingHooked) {
-    pollingHooked = true
+  function resumeHomePolling() {
+    if (route.path !== '/') {
+      return
+    }
+    void refresh()
+    startTimer()
+  }
 
+  if (isClient() && options.poll) {
     onMounted(() => {
-      if (readingsLookEmpty(readings.value)) {
-        refresh()
-      }
-      startTimer()
-    })
-
-    onActivated(() => {
-      startTimer()
-      if (readingsLookEmpty(readings.value)) {
-        refresh()
-      }
-    })
-
-    onDeactivated(() => {
-      stopTimer()
+      resumeHomePolling()
     })
 
     onUnmounted(() => {
       stopTimer()
     })
+
+    watch(
+      () => route.path,
+      (path) => {
+        if (path === '/') {
+          resumeHomePolling()
+        } else {
+          stopTimer()
+        }
+      }
+    )
   }
 
   return {

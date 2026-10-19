@@ -21,8 +21,6 @@ async function selectTab(tab: MainTabId) {
   <nav
     class="fixed inset-x-0 bottom-0 z-40 border-t border-default bg-default/95 backdrop-blur supports-[backdrop-filter]:bg-default/80"
     aria-label="Main"
-    @touchstart.stop
-    @touchend.stop
   >
     <div class="page-shell-nav grid grid-cols-2 gap-1 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       <button
