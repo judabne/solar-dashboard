@@ -16,7 +16,7 @@ import {
 import zoomPlugin from 'chartjs-plugin-zoom'
 import 'chartjs-adapter-date-fns'
 import { Line } from 'vue-chartjs'
-import type { ChartData, ChartOptions } from 'chart.js'
+import type { ChartData, ChartOptions, Plugin } from 'chart.js'
 
 Chart.register(
   LineController,
@@ -30,6 +30,19 @@ Chart.register(
   Filler,
   zoomPlugin
 )
+
+/** Keep vertical page scroll on touch while chartjs-plugin-zoom uses Hammer on the canvas. */
+const coarseTouchScrollPlugin: Plugin<'line'> = {
+  id: 'coarseTouchScroll',
+  start(chart) {
+    if (!isCoarsePointer.value) return
+    chart.canvas.style.touchAction = 'pan-y pinch-zoom'
+  },
+  beforeUpdate(chart) {
+    if (!isCoarsePointer.value) return
+    chart.canvas.style.touchAction = 'pan-y pinch-zoom'
+  }
+}
 
 const props = withDefaults(
   defineProps<{
@@ -51,7 +64,7 @@ const props = withDefaults(
 
 const chartRef = ref<{ chart?: Chart } | null>(null)
 
-/** Touch devices: tooltip on tap only so vertical scroll does not scrub the chart. */
+/** Touch devices: tap for tooltip; pinch for horizontal zoom (not mousemove scrub). */
 const isCoarsePointer = ref(window.matchMedia('(pointer: coarse)').matches)
 
 onMounted(() => {
@@ -144,7 +157,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
       },
       zoom: {
         wheel: { enabled: true },
-        pinch: { enabled: !isCoarsePointer.value },
+        pinch: { enabled: true },
         mode: 'x'
       }
     },
@@ -207,6 +220,7 @@ function resetZoom() {
         ref="chartRef"
         :data="chartData"
         :options="chartOptions"
+        :plugins="[coarseTouchScrollPlugin]"
       />
       <p
         v-else
